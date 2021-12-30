@@ -1,8 +1,9 @@
-from build import ApkTool
+from build import ApkFile
 
 
 def main():
-    ApkTool().uninstall_framework()
+    test_file = ApkFile('')
+    test_file.decode(True)
 
 
 if __name__ == '__main__':
