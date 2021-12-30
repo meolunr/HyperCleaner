@@ -26,3 +26,15 @@ class ApkTool(object):
     @staticmethod
     def build(output_dir: str):
         os.system('java -jar %s/apktool.jar b %s' % (LIB_DIR, output_dir))
+
+    @staticmethod
+    def sign(file: str):
+        old_file = file + '.old'
+        os.rename(file, old_file)
+
+        java_path = os.path.join(os.getenv('JAVA_HOME'), 'bin', 'java.exe')
+        security_dir = os.path.join(LIB_DIR, 'security')
+        os.system('{java} -jar {lib_dir}/signapk.jar {security_dir}/platform.x509.pem {security_dir}/platform.pk8 {src} {dst}'
+                  .format(java=java_path, lib_dir=LIB_DIR, security_dir=security_dir, src=old_file, dst=file))
+
+        os.remove(old_file)
