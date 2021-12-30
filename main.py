@@ -2,8 +2,8 @@ from build import ApkFile
 
 
 def main():
-    test_file = ApkFile('')
-    test_file.decode(True)
+    test_file = ApkFile('MIUISecurityCenter.apk')
+    test_file.decode()
 
 
 if __name__ == '__main__':

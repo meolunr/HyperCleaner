@@ -1,1 +1,1 @@
-from apkfile import ApkFile
+from .apkfile import ApkFile

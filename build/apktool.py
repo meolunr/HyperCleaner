@@ -18,8 +18,11 @@ class ApkTool(object):
         os.makedirs(apktool_framework_path)
 
     @staticmethod
-    def decode(file: str, need_res: bool):
-        folder = os.path.splitext(file)[0]
+    def decode(file: str, output_dir: str, need_res: bool):
         resource_param = '-r' if not need_res else ''
-        os.system('java -jar {lib_dir}/apktool.jar d {file} -o {folder} {resource_param}'
-                  .format(lib_dir=LIB_DIR, file=file, folder=folder, resource_param=resource_param))
+        os.system('java -jar {lib_dir}/apktool.jar d {file} -o {output_dir} {resource_param}'
+                  .format(lib_dir=LIB_DIR, file=file, output_dir=output_dir, resource_param=resource_param))
+
+    @staticmethod
+    def build(output_dir: str):
+        os.system('java -jar %s/apktool.jar b %s' % (LIB_DIR, output_dir))
