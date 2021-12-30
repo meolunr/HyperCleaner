@@ -31,3 +31,7 @@ class AdbUtils(object):
         AdbUtils.push('%s %s' % (src, DATA_TMP_PATH))
         AdbUtils.exec_as_root('cp -rf %s %s' % (os.path.join(DATA_TMP_PATH, file), dst))
         AdbUtils.exec('rm -rf %s' % os.path.join(DATA_TMP_PATH, file))
+
+    @staticmethod
+    def mount_rw(point: str):
+        AdbUtils.exec_as_root('mount -o remount,rw %s' % point)
