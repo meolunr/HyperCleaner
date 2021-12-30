@@ -1,6 +1,9 @@
-def print_hi(name):
-    print(f'{name}')
+from build import ApkTool
+
+
+def main():
+    ApkTool().uninstall_framework()
 
 
 if __name__ == '__main__':
-    print_hi('Hello World')
+    main()
