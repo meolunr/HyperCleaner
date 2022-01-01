@@ -13,5 +13,22 @@ class SmaliParser(object):
 
     def __parse_method(self, content: str):
         pattern = re.compile(r'((\.method.+?)\n.+?\.end method)', re.DOTALL)
+        method_pattern = re.compile(r'\.method (public|private|protected)(?: static)? (\w+?)\((\S+?)\)(\S+?)')
+
         for item in pattern.findall(content):
-            self.smali_file.add_method(item[1], item[0])
+            method_specifiers = method_pattern.findall(item[1])
+            if len(method_specifiers) == 0:
+                continue
+            method_specifiers = method_specifiers[0]
+
+            method = SmaliFile.Method()
+            method.access_specifier = method_specifiers[0]
+            method.is_static = ' static ' in item[1]
+            method.name = method_specifiers[1]
+            method.parameters = method_specifiers[2]
+            method.return_type = method_specifiers[3]
+
+            self.smali_file.add_method(method, item[0])
+
+    def make(self):
+        return self.smali_file
