@@ -12,7 +12,7 @@ class SmaliParser(object):
 
     def __parse_method(self, content: str):
         pattern = re.compile(r'((\.method.+?)\n.+?\.end method)', re.DOTALL)
-        method_pattern = re.compile(r'\.method (public|private|protected)(?: static)? (\w+?)\((\S+?)\)(\S+?)')
+        method_pattern = re.compile(r'\.method (public|private|protected)(?: static)? (\w+?)\((\S*?)\)(\S+?)')
 
         for item in pattern.findall(content):
             method_specifiers = method_pattern.findall(item[1])
