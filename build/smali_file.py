@@ -1,44 +1,33 @@
-from enum import Enum
+from build.method_specifier import MethodSpecifier
 
 
 class SmaliFile(object):
-    class AccessSpecifier(Enum):
-        public = 'public'
-        protected = 'protected'
-        private = 'private'
-        default = ''
-
-    class Method(object):
-        def __init__(self):
-            self.access_specifier = SmaliFile.AccessSpecifier.default
-            self.is_static = False
-            self.name = ''
-            self.parameters = ''
-            self.return_type = ''
-            self.keywords: list[str] = []
 
     def __init__(self, file: str):
         self.__path = file
-        self.__methods: list[SmaliFile.Method] = []
+        self.__methods: list[MethodSpecifier] = []
         self.__method_body = {}
 
-    def add_method(self, method: Method, body: str):
+    def add_method(self, method: MethodSpecifier, body: str):
         self.__methods.append(method)
         self.__method_body[method] = body
 
-    def find_method(self, method: Method):
-        for item in self.__methods:
-            if item.access_specifier != method.access_specifier:
-                continue
-            if item.is_static != method.is_static:
-                continue
-            if item.name != method.name:
-                continue
-            if item.parameters != method.parameters:
-                continue
-            if item.return_type != method.return_type:
-                continue
+    def find_method(self, method: MethodSpecifier):
+        conditions = [
+            lambda x: True if method.name is None else x.name == method.name,
+            lambda x: True if method.access is None else x.access == method.access,
+            lambda x: True if method.is_static is None else x.is_static == method.is_static,
+            lambda x: True if method.parameters is None else x.parameters == method.parameters,
+            lambda x: True if method.return_type is None else x.return_type == method.return_type
+        ]
+        results = self.__methods
+        for condition in conditions:
+            results = list(filter(condition, results))
 
+        if len(results) > 1 and len(method.keywords) == 0:
+            return
+
+        for item in results:
             body = self.__method_body[item]
             if all(keyword in body for keyword in method.keywords):
                 return body
