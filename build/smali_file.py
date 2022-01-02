@@ -1,4 +1,4 @@
-from build import MethodSpecifier
+from .method_specifier import MethodSpecifier
 
 
 class SmaliFile(object):

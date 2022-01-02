@@ -1,7 +1,7 @@
 import re
 
-from build import MethodSpecifier
-from build import SmaliFile
+from .method_specifier import MethodSpecifier
+from .smali_file import SmaliFile
 
 
 class SmaliParser(object):

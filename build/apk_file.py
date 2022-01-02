@@ -1,7 +1,7 @@
 import os
 
-from build import SmaliParser
 from util import ApkUtils
+from .smali_parser import SmaliParser
 
 
 class ApkFile(object):

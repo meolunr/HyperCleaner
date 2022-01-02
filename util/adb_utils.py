@@ -14,6 +14,11 @@ class AdbUtils(object):
         os.system('adb shell su -c %s' % command)
 
     @staticmethod
+    def exec_with_result(command: str):
+        with os.popen('adb shell %s' % command) as file:
+            return file.read()
+
+    @staticmethod
     def pull(command: str):
         os.system('adb pull %s > nul' % command)
 

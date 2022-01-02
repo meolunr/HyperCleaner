@@ -1,0 +1,17 @@
+/system/app/AiAsstVision
+/system/app/AnalyticsCore
+/system/app/AutoRegistration
+/system/app/BackupAndRestore
+/system/app/BasicDreams
+/system/app/BookmarkProvider
+/system/app/CarrierDefaultApp
+/system/app/CatcherPatch
+/system/app/CatchLog
+/system/app/com.xiaomi.macro
+/system/app/GooglePrintRecommendationService
+/system/app/HTMLViewer
+/system/app/HybridAccessory
+/system/app/HybridPlatform
+/system/app/KSICibaEngine
+/system/app/MIpay
+/system/app/MSA
