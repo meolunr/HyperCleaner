@@ -6,10 +6,9 @@ from build.smali_file import SmaliFile
 class SmaliParser(object):
 
     def __init__(self, path: str):
-        self.smali_file = SmaliFile(path)
-
-        content = open(path, mode='r').read()
-        self.__parse_method(content)
+        self.__smali_file = SmaliFile(path)
+        with open(path, mode='r') as file:
+            self.__parse_method(file.read())
 
     def __parse_method(self, content: str):
         pattern = re.compile(r'((\.method.+?)\n.+?\.end method)', re.DOTALL)
@@ -28,7 +27,7 @@ class SmaliParser(object):
             method.parameters = method_specifiers[2]
             method.return_type = method_specifiers[3]
 
-            self.smali_file.add_method(method, item[0])
+            self.__smali_file.add_method(method, item[0])
 
     def make(self):
-        return self.smali_file
+        return self.__smali_file
