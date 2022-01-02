@@ -21,7 +21,7 @@ class SmaliParser(object):
             method_specifiers = method_specifiers[0]
 
             method = SmaliFile.Method()
-            method.access_specifier = method_specifiers[0]
+            method.access_specifier = SmaliFile.AccessSpecifier(method_specifiers[0])
             method.is_static = ' static ' in item[1]
             method.name = method_specifiers[1]
             method.parameters = method_specifiers[2]
