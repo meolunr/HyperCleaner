@@ -1,8 +1,7 @@
-from build.method_specifier import MethodSpecifier
+from build import MethodSpecifier
 
 
 class SmaliFile(object):
-
     def __init__(self, file: str):
         self.__path = file
         self.__methods: list[MethodSpecifier] = []

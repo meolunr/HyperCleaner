@@ -5,7 +5,7 @@ import sys
 LIB_DIR = os.path.join(sys.path[0], 'lib')
 
 
-class ApkTool(object):
+class ApkUtils(object):
 
     @staticmethod
     def install_framework(file: str):

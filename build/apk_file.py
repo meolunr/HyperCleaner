@@ -1,23 +1,22 @@
 import os
 
-from build.apktool import ApkTool
-from build.smali_parser import SmaliParser
+from build import SmaliParser
+from util import ApkUtils
 
 
 class ApkFile(object):
-
     def __init__(self, file: str):
         self.__path = os.path.abspath(file)
         self.__output_dir = None
 
     def decode(self, need_res: bool = False):
         self.__output_dir = os.path.splitext(self.__path)[0]
-        ApkTool.decode(self.__path, self.__output_dir, need_res)
+        ApkUtils.decode(self.__path, self.__output_dir, need_res)
 
     def build(self):
         output_file = os.path.join(self.__output_dir, 'dist', os.path.basename(self.__path))
-        ApkTool.build(self.__output_dir)
-        ApkTool.sign(output_file)
+        ApkUtils.build(self.__output_dir)
+        ApkUtils.sign(output_file)
         return output_file
 
     def open_smali(self, file: str):
