@@ -1,8 +1,9 @@
-/system/app/AiAsstVision
-/system/app/AnalyticsCore
-/system/app/AutoRegistration
-/system/app/BackupAndRestore
-/system/app/BasicDreams
+#/system/app/AiAsstVision
+# /system/app/AnalyticsCore
+#   /system/app/AutoRegistration
+# testcase
+/system/app/BackupAndRestore   # 15.16.7.8
+/system/app/B#asicDreams
 /system/app/BookmarkProvider
 /system/app/CarrierDefaultApp
 /system/app/CatcherPatch

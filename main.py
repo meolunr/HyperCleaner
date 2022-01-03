@@ -4,13 +4,18 @@ from util import AdbUtils
 
 
 def delete_rubbish():
+    def ignore_annotation(line: str):
+        annotation_index = line.find('#')
+        return line[:annotation_index].strip()
+
     model = AdbUtils.exec_with_result('getprop ro.product.name')[:-1]
     print('>>> Delete rubbish files, device: %s' % model)
 
     with open('rubbish-files-%s.txt' % model) as file:
-        for rubbish in map(lambda x: x[:-1], file.readlines()):
-            print('Deleting %s' % rubbish)
-            # AdbUtils.exec_as_root('rm -rf %s' % rubbish)
+        for rubbish in map(ignore_annotation, file.readlines()):
+            if len(rubbish) != 0:
+                print('Deleting %s' % rubbish)
+                # AdbUtils.exec_as_root('rm -rf %s' % rubbish)
 
 
 def main():
