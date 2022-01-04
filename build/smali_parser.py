@@ -16,19 +16,19 @@ class SmaliParser(object):
         method_pattern = re.compile(r'\.method (public|protected|private)(?: static)? (\w+?)\((\S*?)\)(\S+?)')
 
         for item in pattern.findall(content):
-            method_specifiers = method_pattern.findall(item[1])
-            if len(method_specifiers) == 0:
+            method_defines = method_pattern.findall(item[1])
+            if len(method_defines) == 0:
                 continue
-            method_specifiers = method_specifiers[0]
+            method_defines = method_defines[0]
 
-            method = MethodSpecifier()
-            method.access = MethodSpecifier.Access(method_specifiers[0])
-            method.is_static = ' static ' in item[1]
-            method.name = method_specifiers[1]
-            method.parameters = method_specifiers[2]
-            method.return_type = method_specifiers[3]
+            specifier = MethodSpecifier()
+            specifier.access = MethodSpecifier.Access(method_defines[0])
+            specifier.is_static = ' static ' in item[1]
+            specifier.name = method_defines[1]
+            specifier.parameters = method_defines[2]
+            specifier.return_type = method_defines[3]
 
-            self.__smali_file.add_method(method, item[0])
+            self.__smali_file.add_method(specifier, item[0])
 
     def make(self):
         return self.__smali_file

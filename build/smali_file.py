@@ -11,22 +11,29 @@ class SmaliFile(object):
         self.__methods.append(method)
         self.__method_body[method] = body
 
-    def find_method(self, method: MethodSpecifier):
+    def find_method(self, specifier: MethodSpecifier):
         conditions = [
-            lambda x: True if method.name is None else x.name == method.name,
-            lambda x: True if method.access is None else x.access == method.access,
-            lambda x: True if method.is_static is None else x.is_static == method.is_static,
-            lambda x: True if method.parameters is None else x.parameters == method.parameters,
-            lambda x: True if method.return_type is None else x.return_type == method.return_type
+            lambda x: True if specifier.name is None else x.name == specifier.name,
+            lambda x: True if specifier.access is None else x.access == specifier.access,
+            lambda x: True if specifier.is_static is None else x.is_static == specifier.is_static,
+            lambda x: True if specifier.parameters is None else x.parameters == specifier.parameters,
+            lambda x: True if specifier.return_type is None else x.return_type == specifier.return_type
         ]
         results = self.__methods
         for condition in conditions:
             results = list(filter(condition, results))
 
-        if len(results) > 1 and len(method.keywords) == 0:
+        if len(results) > 1 and len(specifier.keywords) == 0:
             return
 
         for item in results:
             body = self.__method_body[item]
-            if all(keyword in body for keyword in method.keywords):
+            if all(keyword in body for keyword in specifier.keywords):
                 return body
+
+    def replace_method(self, old_method_body: str, new_method_body: str):
+        with open(self.__path, mode='r+') as file:
+            text = file.read().replace(old_method_body, new_method_body)
+            file.seek(0)
+            file.truncate()
+            file.write(text)
