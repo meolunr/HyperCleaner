@@ -7,9 +7,9 @@ class SmaliFile(object):
         self.__methods: list[MethodSpecifier] = []
         self.__method_body = {}
 
-    def add_method(self, method: MethodSpecifier, body: str):
-        self.__methods.append(method)
-        self.__method_body[method] = body
+    def add_method(self, specifier: MethodSpecifier, body: str):
+        self.__methods.append(specifier)
+        self.__method_body[specifier] = body
 
     def find_method(self, specifier: MethodSpecifier):
         conditions = [
@@ -26,10 +26,13 @@ class SmaliFile(object):
         if len(results) > 1 and len(specifier.keywords) == 0:
             return
 
-        for item in results:
+        def filter_keyword(item: MethodSpecifier):
             body = self.__method_body[item]
-            if all(keyword in body for keyword in specifier.keywords):
-                return body
+            return all(keyword in body for keyword in specifier.keywords)
+
+        results = list(filter(filter_keyword, results))
+        if len(results) == 1:
+            return self.__method_body[results[0]]
 
     def replace_method(self, old_method_body: str, new_method_body: str):
         with open(self.__path, mode='r+') as file:
