@@ -1,5 +1,6 @@
 import encodings.utf_8
 import os
+import shutil
 
 from build import ApkFile
 from build.method_specifier import MethodSpecifier
@@ -11,14 +12,14 @@ def process_in_tmp(func):
         cwd = os.getcwd()
         if os.path.exists('tmp'):
             print('Delete temp files ...')
-            # shutil.rmtree('tmp')
+            shutil.rmtree('tmp')
 
-        # os.mkdir('tmp')
+        os.mkdir('tmp')
         os.chdir('tmp')
         result = func(*args, **kwargs)
 
         os.chdir(cwd)
-        # shutil.rmtree('tmp')
+        shutil.rmtree('tmp')
         return result
 
     return wrapper
@@ -46,7 +47,19 @@ def disable_wakeup_dialog(apk_file: ApkFile):
     specifier = MethodSpecifier()
     specifier.access = MethodSpecifier.Access.PROTECTED
     specifier.keywords.append('"android.intent.action.PICK"')
-    method_body = smali_file.find_method(specifier)
+    new_method_fragment = '''\
+    const/4 v0, 0x0
+
+    const/4 v1, -0x1
+
+    invoke-virtual {p0, v0, v1}, Lcom/miui/wakepath/ui/ConfirmStartActivity;->onClick(Landroid/content/DialogInterface;I)V
+
+    invoke-virtual {p0}, Landroid/app/Activity;->finish()V
+
+    return-void\
+    '''
+    new_method_body = smali_file.find_method(specifier).replace('return-void', new_method_fragment)
+    smali_file.replace_method(smali_file.find_method(specifier), new_method_body)
 
 
 def disable_wifi_blocked_notification(apk_file: ApkFile):
@@ -67,15 +80,15 @@ def disable_wifi_blocked_notification(apk_file: ApkFile):
 def process_security_center():
     print('>>> Process security center')
     print('>>> Pull SecurityCenter.apk')
-    # AdbUtils.pull('/system/priv-app/SecurityCenter/SecurityCenter.apk')
+    AdbUtils.pull('/system/priv-app/SecurityCenter/SecurityCenter.apk')
     apk_file = ApkFile('SecurityCenter.apk')
-    # apk_file.decode()
+    apk_file.decode()
 
-    # disable_wakeup_dialog(apk_file)
-    # disable_wifi_blocked_notification(apk_file)
+    disable_wakeup_dialog(apk_file)
+    disable_wifi_blocked_notification(apk_file)
 
-    # path = apk_file.build()
-    # AdbUtils.push_as_root(path, '/system/priv-app/SecurityCenter/')
+    path = apk_file.build()
+    AdbUtils.push_as_root(path, '/system/priv-app/SecurityCenter/')
     AdbUtils.push_as_root('SecurityCenter.apk', '/system/priv-app/SecurityCenter/')
 
 
@@ -84,27 +97,11 @@ def main():
     AdbUtils.mount_rw('/vendor')
     AdbUtils.mount_rw('/product')
 
-    AdbUtils.exec_as_root('mv /system/app/MIUIThemeManager/MIUIThemeManager.apk /system/app/MIUIThemeManager/MIUIThemeManager.apk0')
-    # AdbUtils.exec_as_root('mv /system/app/MIUIThemeManager/MIUIThemeManager.apk1 /system/app/MIUIThemeManager/MIUIThemeManager.apk')
-    exit()
+    # AdbUtils.exec_as_root(
+    #     'mv /system/app/MIUIThemeManager/MIUIThemeManager.apk /system/app/MIUIThemeManager/MIUIThemeManager.apk0')
+    # exit()
     delete_rubbish()
-    # process_security_center()
-
-    test_file = ApkFile('tmp/MIUISecurityCenter.apk')
-    test_file.decode()
-    smali_file = test_file.open_smali('com/miui/networkassistant/utils/NotificationUtil.smali')
-
-    method = MethodSpecifier()
-    # method.access = MethodSpecifier.Access.PROTECTED
-    # method.is_static = True
-    method.name = 'sendWifiNetworkBlockedNotify'
-    # method.parameters = 'Landroid/content/Intent;Ljava/lang/String;I'
-    # method.return_type = 'V'
-    # method.keywords.append('"android.intent.action.PICK"')
-
-    old = smali_file.find_method(method)
-    print(old)
-    # test_file.build()
+    process_security_center()
 
 
 if __name__ == '__main__':
