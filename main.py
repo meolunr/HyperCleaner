@@ -129,7 +129,7 @@ def main():
     # AdbUtils.exec_as_root(
     #     'mv /system/app/MIUIThemeManager/MIUIThemeManager.apk /system/app/MIUIThemeManager/MIUIThemeManager.apk0')
     # exit()
-    # delete_rubbish()
+    delete_rubbish()
     process_security_center()
 
 
