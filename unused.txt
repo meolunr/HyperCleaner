@@ -1,3 +1,5 @@
+java -jar .\apksigner.jar sign --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled false --v4-signing-enabled false --cert platform.x509.pem --key platform.pk8 .\MIUIThemeManager.apk
+
 def show_traffic_in_notification_bar():
     with ApkUtils.open_smali('MIUISecurityCenter',
                              'com/miui/networkassistant/ui/fragment/SettingFragment.smali') as file:

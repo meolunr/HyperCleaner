@@ -119,7 +119,6 @@ def process_security_center():
 
     path = apk_file.build()
     AdbUtils.push_as_root(path, '/system/priv-app/SecurityCenter/')
-    AdbUtils.push_as_root('SecurityCenter.apk', '/system/priv-app/SecurityCenter/')
 
 
 def main():

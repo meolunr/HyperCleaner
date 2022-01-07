@@ -44,5 +44,5 @@ class ApkUtils(object):
     def zipalign(file: str):
         old_file = file + '.old'
         os.rename(file, old_file)
-        os.system('%s/zipalign.exe -p -f -v 4 %s %s' % (LIB_DIR, old_file, file))
+        os.system('%s/zipalign.exe -p -f 4 %s %s' % (LIB_DIR, old_file, file))
         os.remove(old_file)
