@@ -68,9 +68,38 @@ def disable_wifi_blocked_notification(apk_file: ApkFile):
     specifier.name = 'sendWifiNetworkBlockedNotify'
     new_method_body = '''\
 .method public static sendWifiNetworkBlockedNotify(Landroid/content/Context;Z)V
-    .registers 2
+    .locals 0
 
     return-void
+.end method\
+    '''
+    smali_file.replace_method(smali_file.find_method(specifier), new_method_body)
+
+
+def lock_100_score(apk_file: ApkFile):
+    specifier = MethodSpecifier()
+
+    smali_file = apk_file.open_smali('com/miui/securityscan/ui/main/MainContentFrame.smali')
+    specifier.name = 'onClick'
+    new_method_body = '''\
+.method public onClick(Landroid/view/View;)V
+    .locals 0
+
+    return-void
+.end method\
+    '''
+    smali_file.replace_method(smali_file.find_method(specifier), new_method_body)
+
+    smali_file = apk_file.open_smali('com/miui/securityscan/scanner/ScoreManager.smali')
+    specifier.name = None
+    specifier.keywords.append('getMinusPredictScore')
+    old_method_body = smali_file.find_method(specifier)
+    new_method_body = old_method_body.splitlines()[0] + '''
+    .locals 1
+    
+    const/4 v0, 0x0
+
+    return v0
 .end method\
     '''
     smali_file.replace_method(smali_file.find_method(specifier), new_method_body)
@@ -86,6 +115,7 @@ def process_security_center():
 
     disable_wakeup_dialog(apk_file)
     disable_wifi_blocked_notification(apk_file)
+    lock_100_score(apk_file)
 
     path = apk_file.build()
     AdbUtils.push_as_root(path, '/system/priv-app/SecurityCenter/')
@@ -100,7 +130,7 @@ def main():
     # AdbUtils.exec_as_root(
     #     'mv /system/app/MIUIThemeManager/MIUIThemeManager.apk /system/app/MIUIThemeManager/MIUIThemeManager.apk0')
     # exit()
-    delete_rubbish()
+    # delete_rubbish()
     process_security_center()
 
 
