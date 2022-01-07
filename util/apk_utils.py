@@ -39,3 +39,10 @@ class ApkUtils(object):
                   .format(java=java_path, lib_dir=LIB_DIR, security_dir=security_dir, src=old_file, dst=file))
 
         os.remove(old_file)
+
+    @staticmethod
+    def zipalign(file: str):
+        old_file = file + '.old'
+        os.rename(file, old_file)
+        os.system('%s/zipalign.exe -p -f -v 4 %s %s' % (LIB_DIR, old_file, file))
+        os.remove(old_file)

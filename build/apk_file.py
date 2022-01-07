@@ -20,6 +20,7 @@ class ApkFile(object):
             ApkUtils.sign(output_file)
         else:
             ApkUtils.build(self.__output_dir, True)
+        ApkUtils.zipalign(output_file)
         return output_file
 
     def open_smali(self, file: str):
