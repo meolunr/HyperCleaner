@@ -23,17 +23,14 @@ class AdbUtils(object):
         os.system('adb pull %s > nul' % command)
 
     @staticmethod
-    def push(command: str):
-        os.system('adb push %s' % command)
+    def push(src: str, dst: str):
+        os.system('adb push %s %s' % (src, dst))
 
     @staticmethod
-    def push_as_root(command: str):
-        split = command.split(' ')
-        src = split[0]
-        dst = split[1]
+    def push_as_root(src: str, dst: str):
         file = os.path.basename(src)
 
-        AdbUtils.push('%s %s' % (src, DATA_TMP_PATH))
+        AdbUtils.push(src, DATA_TMP_PATH)
         AdbUtils.exec_as_root('cp -rf %s %s' % (os.path.join(DATA_TMP_PATH, file), dst))
         AdbUtils.exec('rm -rf %s' % os.path.join(DATA_TMP_PATH, file))
 
