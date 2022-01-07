@@ -1,0 +1,102 @@
+def show_traffic_in_notification_bar():
+    with ApkUtils.open_smali('MIUISecurityCenter',
+                             'com/miui/networkassistant/ui/fragment/SettingFragment.smali') as file:
+        content = file.read()
+        method_pattern = re.compile(r'\.method protected initPreferenceView\(\)V.+?return-void', re.DOTALL)
+        method_body = method_pattern.search(content).group()
+
+        sget_pattern = re.compile(
+            r'invoke-static \{v\d+?\}, Lcom/miui/networkassistant/utils/DeviceUtil;->isUseControlPanel\(Landroid/content/Context;\)Z.+?move-result v(\d+?)',
+            re.DOTALL)
+        register_id = sget_pattern.findall(method_body)[0]
+        method_body = re.sub(sget_pattern, 'const/4 v%s, 0x0' % register_id, method_body)
+
+        content = re.sub(method_pattern, method_body, content)
+        file.seek(0)
+        file.truncate()
+        file.write(content)
+
+def disable_usb_install_dialog(self):
+    self.create_tmp_folder()
+    AdbUtils.pull('/system_root/system/framework/framework.jar tmp/')
+    # SmaliUtils.disassemble('tmp/framework.jar', 'classes2.dex')
+
+    with open('tmp/framework.jar.out/com/android/commands/pm/PmInjector.smali', mode='r+') as file:
+        modified_method = '''\
+.method public static installVerify(Ljava/lang/String;)I
+    .registers 2
+    .param p0, "apkFilePath"    # Ljava/lang/String;
+
+    .prologue
+    const/4 v0, 0x2
+
+    return v0
+.end method\
+            '''
+        pattern = re.compile(
+            r'\.method public static installVerify\(Ljava/lang/String;\)I.+?\.end method', re.DOTALL)
+        content = re.sub(pattern, modified_method, file.read())
+        file.seek(0)
+        file.truncate()
+        file.write(content)
+
+    # SmaliUtils.assemble('tmp/framework.jar.out', 28)
+    os.rename('classes.dex', 'tmp/classes2.dex')
+
+    os.chdir('tmp')
+    os.system('..\\lib\\7z.exe d -tzip framework.jar classes2.dex > nul')
+    os.system('..\\lib\\7z.exe a -tzip framework.jar classes2.dex > nul')
+    os.chdir('..')
+    print('Assemble framework.jar')
+
+    AdbUtils.push('tmp/framework.jar /system_root/system/framework/')
+    shutil.rmtree('tmp')
+
+
+def remove_setting_entrance(id_key: str):
+    tree = ET.parse('Settings.apk.out/res/xml/settings_headers.xml')
+    root: ET.Element = tree.getroot()
+
+    for header in root.findall('header'):
+        if id_key in header.attrib and 'permission_manager_tablet' in header.attrib[id_key]:
+            root.remove(header)
+        if id_key in header.attrib and 'miui_userguide' in header.attrib[id_key]:
+            root.remove(header)
+        if id_key in header.attrib and 'other_settings' in header.attrib[id_key]:
+            root.remove(header)
+        if id_key in header.attrib and 'bug_report_settings' in header.attrib[id_key]:
+            root.remove(header)
+        if id_key in header.attrib and 'mi_service' in header.attrib[id_key]:
+            root.remove(header)
+
+    tree.write('Settings.apk.out/res/xml/settings_headers.xml')
+
+
+def handle_settings(self):
+    self.create_tmp_folder()
+    AdbUtils.pull('/system_root/system/framework/framework-res.apk tmp/')
+    AdbUtils.pull('/system_root/system/framework/framework-ext-res/framework-ext-res.apk tmp/')
+    AdbUtils.pull('/system_root/system/app/miui/miui.apk tmp/')
+    AdbUtils.pull('/system_root/system/app/miuisystem/miuisystem.apk tmp/')
+    # ApktoolUtils.install_framework('tmp/framework-res.apk')
+    # ApktoolUtils.install_framework('tmp/framework-ext-res.apk')
+    # ApktoolUtils.install_framework('tmp/miui.apk')
+    # ApktoolUtils.install_framework('tmp/miuisystem.apk')
+
+    AdbUtils.pull('/system_root/system/priv-app/Settings/Settings.apk tmp/')
+    # ApktoolUtils.decode_res('tmp/Settings.apk')
+    os.chdir('tmp')
+
+    id_key = '{http://schemas.android.com/apk/res/android}id'
+    ET.register_namespace('android', 'http://schemas.android.com/apk/res/android')
+
+    self.remove_setting_entrance(id_key)
+
+    # ApktoolUtils.build('Settings.apk.out')
+    # ApktoolUtils.uninstall_framework()
+    # ApkUtils.sign_apk('Settings.apk.out/dist/Settings.apk', 'Settings.apk')
+    print('Assemble Settings.apk')
+
+    AdbUtils.push('Settings.apk /system_root/system/priv-app/Settings/')
+    os.chdir('..')
+    shutil.rmtree('tmp')
