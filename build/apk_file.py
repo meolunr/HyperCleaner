@@ -13,10 +13,13 @@ class ApkFile(object):
         self.__output_dir = os.path.splitext(self.__path)[0]
         ApkUtils.decode(self.__path, self.__output_dir, need_res)
 
-    def build(self):
+    def build(self, sign=False):
         output_file = os.path.join(self.__output_dir, 'dist', os.path.basename(self.__path))
-        ApkUtils.build(self.__output_dir)
-        ApkUtils.sign(output_file)
+        if sign:
+            ApkUtils.build(self.__output_dir)
+            ApkUtils.sign(output_file)
+        else:
+            ApkUtils.build(self.__output_dir, True)
         return output_file
 
     def open_smali(self, file: str):

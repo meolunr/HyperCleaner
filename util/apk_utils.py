@@ -24,8 +24,9 @@ class ApkUtils(object):
                   .format(lib_dir=LIB_DIR, file=file, output_dir=output_dir, resource_param=resource_param))
 
     @staticmethod
-    def build(output_dir: str):
-        os.system('java -jar %s/apktool.jar b %s' % (LIB_DIR, output_dir))
+    def build(output_dir: str, copy_original=False):
+        original_param = '-c' if copy_original else ''
+        os.system('java -jar %s/apktool.jar b %s %s' % (LIB_DIR, original_param, output_dir))
 
     @staticmethod
     def sign(file: str):
