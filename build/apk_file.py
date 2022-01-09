@@ -1,3 +1,4 @@
+import glob
 import os
 
 from util import ApkUtils
@@ -29,3 +30,14 @@ class ApkFile(object):
                 assumed_path = os.path.join(self.__output_dir, dir_name, file)
                 if os.path.exists(assumed_path):
                     return SmaliParser(assumed_path).make()
+
+    def find_smali(self, *keywords: str):
+        files = glob.glob(os.path.join(self.__output_dir, r'smali*/**/*.smali'), recursive=True)
+        for file in files:
+            keywordSet = set(keywords)
+            for line in open(file, mode='r'):
+                for keyword in keywords:
+                    if keyword in line:
+                        keywordSet.discard(keyword)
+            if len(keywordSet) == 0:
+                return SmaliParser(file).make()
