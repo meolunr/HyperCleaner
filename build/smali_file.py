@@ -34,9 +34,19 @@ class SmaliFile(object):
         if len(results) == 1:
             return self.__method_body[results[0]]
 
-    def replace_method(self, old_method_body: str, new_method_body: str):
+    def method_replace(self, old_method_body: str, new_method_body: str):
         with open(self.__path, mode='r+') as file:
             text = file.read().replace(old_method_body, new_method_body)
             file.seek(0)
             file.truncate()
             file.write(text)
+
+    def method_nop(self, specifier: MethodSpecifier):
+        old_method_body = self.find_method(specifier)
+        new_method_body = old_method_body.splitlines()[0] + '''
+    .locals 0
+
+    return-void
+.end method\
+        '''
+        self.method_replace(old_method_body, new_method_body)
