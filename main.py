@@ -1,6 +1,5 @@
 import encodings.utf_8
 import os
-import shutil
 
 from build import ApkFile
 from build.method_specifier import MethodSpecifier
@@ -10,16 +9,16 @@ from util import AdbUtils
 def process_in_tmp(func):
     def wrapper(*args, **kwargs):
         cwd = os.getcwd()
-        if os.path.exists('tmp'):
-            print('Delete temp files ...')
-            shutil.rmtree('tmp')
+        # if os.path.exists('tmp'):
+        #     print('Delete temp files ...')
+        #     shutil.rmtree('tmp')
 
-        os.mkdir('tmp')
+        # os.mkdir('tmp')
         os.chdir('tmp')
         result = func(*args, **kwargs)
 
         os.chdir(cwd)
-        shutil.rmtree('tmp')
+        # shutil.rmtree('tmp')
         return result
 
     return wrapper
@@ -59,7 +58,7 @@ def disable_wakeup_dialog(apk_file: ApkFile):
     return-void\
     '''
     new_method_body = smali_file.find_method(specifier).replace('return-void', new_method_fragment)
-    smali_file.replace_method(smali_file.find_method(specifier), new_method_body)
+    smali_file.method_replace(smali_file.find_method(specifier), new_method_body)
 
 
 def disable_wifi_blocked_notification(apk_file: ApkFile):
@@ -73,7 +72,7 @@ def disable_wifi_blocked_notification(apk_file: ApkFile):
     return-void
 .end method\
     '''
-    smali_file.replace_method(smali_file.find_method(specifier), new_method_body)
+    smali_file.method_replace(smali_file.find_method(specifier), new_method_body)
 
 
 def lock_100_score(apk_file: ApkFile):
@@ -88,7 +87,7 @@ def lock_100_score(apk_file: ApkFile):
     return-void
 .end method\
     '''
-    smali_file.replace_method(smali_file.find_method(specifier), new_method_body)
+    smali_file.method_replace(smali_file.find_method(specifier), new_method_body)
 
     smali_file = apk_file.open_smali('com/miui/securityscan/scanner/ScoreManager.smali')
     specifier.name = None
@@ -102,13 +101,27 @@ def lock_100_score(apk_file: ApkFile):
     return v0
 .end method\
     '''
-    smali_file.replace_method(smali_file.find_method(specifier), new_method_body)
+    smali_file.method_replace(smali_file.find_method(specifier), new_method_body)
+
+
+def disable_cloud_control(apk_file: ApkFile):
+    smali_file = apk_file.open_smali('com/miui/powerkeeper/cloudcontrol/LocalUpdateUtils.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'startCloudSyncData'
+    smali_file.method_nop(specifier)
+
+
+def global_maximum_fps(apk_file: ApkFile):
+    smali_file = apk_file.open_smali('com/miui/powerkeeper/statemachine/DisplayFrameSetting.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'setScreenEffect'
+    specifier.parameters = 'Ljava/lang/String;II'
+    smali_file.method_nop(specifier)
 
 
 @process_in_tmp
 def process_security_center():
-    print('>>> Process security center')
-    print('>>> Pull SecurityCenter.apk')
+    print('>>> Process SecurityCenter.apk')
     AdbUtils.pull('/system/priv-app/SecurityCenter/SecurityCenter.apk')
     apk_file = ApkFile('SecurityCenter.apk')
     apk_file.decode()
@@ -121,6 +134,22 @@ def process_security_center():
     AdbUtils.push_as_root(path, '/system/priv-app/SecurityCenter/')
 
 
+@process_in_tmp
+def process_power_keeper():
+    # print('>>> Process PowerKeeper.apk')
+    # AdbUtils.pull('/system/app/PowerKeeper/PowerKeeper.apk')
+    apk_file = ApkFile('PowerKeeper.apk')
+    # apk_file.decode()
+    apk_file._ApkFile__output_dir = 'E:/WorkSpace/Python/MiuiCleaner/tmp/PowerKeeper'
+
+    # disable_cloud_control(apk_file)
+    global_maximum_fps(apk_file)
+    # lock_100_score(apk_file)
+
+    # path = apk_file.build()
+    # AdbUtils.push_as_root(path, '/system/priv-app/SecurityCenter/')
+
+
 def main():
     AdbUtils.mount_rw('/')
     AdbUtils.mount_rw('/vendor')
@@ -129,8 +158,9 @@ def main():
     # AdbUtils.exec_as_root(
     #     'mv /system/app/MIUIThemeManager/MIUIThemeManager.apk /system/app/MIUIThemeManager/MIUIThemeManager.apk0')
     # exit()
-    delete_rubbish()
-    process_security_center()
+    # delete_rubbish()
+    # process_security_center()
+    process_power_keeper()
 
 
 if __name__ == '__main__':
