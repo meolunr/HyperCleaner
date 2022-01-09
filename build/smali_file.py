@@ -50,3 +50,15 @@ class SmaliFile(object):
 .end method\
         '''
         self.method_replace(old_method_body, new_method_body)
+
+    def method_return0(self, specifier: MethodSpecifier):
+        old_method_body = self.find_method(specifier)
+        new_method_body = old_method_body.splitlines()[0] + '''
+    .locals 1
+    
+    const/4 v0, 0x0
+
+    return v0
+.end method\
+        '''
+        self.method_replace(old_method_body, new_method_body)

@@ -78,16 +78,7 @@ def lock_100_score(apk_file: ApkFile):
     smali_file = apk_file.open_smali('com/miui/securityscan/scanner/ScoreManager.smali')
     specifier.name = None
     specifier.keywords.append('getMinusPredictScore')
-    old_method_body = smali_file.find_method(specifier)
-    new_method_body = old_method_body.splitlines()[0] + '''
-    .locals 1
-    
-    const/4 v0, 0x0
-
-    return v0
-.end method\
-    '''
-    smali_file.method_replace(smali_file.find_method(specifier), new_method_body)
+    smali_file.method_return0(specifier)
 
 
 def disable_cloud_control(apk_file: ApkFile):
@@ -122,18 +113,16 @@ def process_security_center():
 
 @process_in_tmp
 def process_power_keeper():
-    # print('>>> Process PowerKeeper.apk')
-    # AdbUtils.pull('/system/app/PowerKeeper/PowerKeeper.apk')
+    print('>>> Process PowerKeeper.apk')
+    AdbUtils.pull('/system/app/PowerKeeper/PowerKeeper.apk')
     apk_file = ApkFile('PowerKeeper.apk')
-    # apk_file.decode()
-    apk_file._ApkFile__output_dir = 'E:/WorkSpace/Python/MiuiCleaner/tmp/PowerKeeper'
+    apk_file.decode()
 
-    # disable_cloud_control(apk_file)
+    disable_cloud_control(apk_file)
     global_maximum_fps(apk_file)
-    # lock_100_score(apk_file)
 
-    # path = apk_file.build()
-    # AdbUtils.push_as_root(path, '/system/priv-app/SecurityCenter/')
+    path = apk_file.build()
+    AdbUtils.push_as_root(path, '/system/app/PowerKeeper/')
 
 
 def main():
