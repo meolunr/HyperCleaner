@@ -1,5 +1,6 @@
 import encodings.utf_8
 import os
+import shutil
 
 from build import ApkFile
 from build.method_specifier import MethodSpecifier
@@ -9,16 +10,16 @@ from util import AdbUtils
 def process_in_tmp(func):
     def wrapper(*args, **kwargs):
         cwd = os.getcwd()
-        # if os.path.exists('tmp'):
-        #     print('Delete temp files ...')
-        #     shutil.rmtree('tmp')
+        if os.path.exists('tmp'):
+            print('Delete temp files ...')
+            shutil.rmtree('tmp')
 
-        # os.mkdir('tmp')
+        os.mkdir('tmp')
         os.chdir('tmp')
         result = func(*args, **kwargs)
 
         os.chdir(cwd)
-        # shutil.rmtree('tmp')
+        shutil.rmtree('tmp')
         return result
 
     return wrapper
@@ -123,6 +124,24 @@ def process_power_keeper():
 
     path = apk_file.build()
     AdbUtils.push_as_root(path, '/system/app/PowerKeeper/')
+    AdbUtils.exec_as_root('rm -rf /data/vendor/thermal/config')
+
+
+@process_in_tmp
+def process_joyose():
+    print('>>> Process Joyose.apk')
+    AdbUtils.pull('/system/app/Joyose/Joyose.apk')
+    apk_file = ApkFile('Joyose.apk')
+    apk_file.decode()
+
+    smali_file = apk_file.find_smali('allow connect:')
+    specifier = MethodSpecifier()
+    specifier.keywords.append('allow connect:')
+    smali_file.method_nop(specifier)
+
+    path = apk_file.build()
+    AdbUtils.push_as_root(path, '/system/app/Joyose/')
+    AdbUtils.exec_as_root('pm clear com.xiaomi.joyose')
 
 
 def main():
@@ -133,9 +152,10 @@ def main():
     # AdbUtils.exec_as_root(
     #     'mv /system/app/MIUIThemeManager/MIUIThemeManager.apk /system/app/MIUIThemeManager/MIUIThemeManager.apk0')
     # exit()
-    # delete_rubbish()
-    # process_security_center()
+    delete_rubbish()
+    process_security_center()
     process_power_keeper()
+    process_joyose()
 
 
 if __name__ == '__main__':
