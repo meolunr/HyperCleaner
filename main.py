@@ -65,14 +65,7 @@ def disable_wifi_blocked_notification(apk_file: ApkFile):
     smali_file = apk_file.open_smali('com/miui/networkassistant/utils/NotificationUtil.smali')
     specifier = MethodSpecifier()
     specifier.name = 'sendWifiNetworkBlockedNotify'
-    new_method_body = '''\
-.method public static sendWifiNetworkBlockedNotify(Landroid/content/Context;Z)V
-    .locals 0
-
-    return-void
-.end method\
-    '''
-    smali_file.method_replace(smali_file.find_method(specifier), new_method_body)
+    smali_file.method_nop(specifier)
 
 
 def lock_100_score(apk_file: ApkFile):
@@ -80,14 +73,7 @@ def lock_100_score(apk_file: ApkFile):
 
     smali_file = apk_file.open_smali('com/miui/securityscan/ui/main/MainContentFrame.smali')
     specifier.name = 'onClick'
-    new_method_body = '''\
-.method public onClick(Landroid/view/View;)V
-    .locals 0
-
-    return-void
-.end method\
-    '''
-    smali_file.method_replace(smali_file.find_method(specifier), new_method_body)
+    smali_file.method_nop(specifier)
 
     smali_file = apk_file.open_smali('com/miui/securityscan/scanner/ScoreManager.smali')
     specifier.name = None
