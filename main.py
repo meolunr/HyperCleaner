@@ -35,7 +35,11 @@ def delete_rubbish():
     model = AdbUtils.exec_with_result('getprop ro.product.name')[:-1]
     print('>>> Delete rubbish files, device: %s' % model)
 
-    with open('rubbish-files-%s.txt' % model, encoding=encodings.utf_8.getregentry().name) as file:
+    rubbish_file_list = 'rubbish-files-%s.txt' % model
+    if not os.path.isfile(rubbish_file_list):
+        rubbish_file_list = 'rubbish-files.txt'
+
+    with open(rubbish_file_list, encoding=encodings.utf_8.getregentry().name) as file:
         for rubbish in map(ignore_annotation, file.readlines()):
             if len(rubbish) != 0:
                 print('Deleting %s' % rubbish)
@@ -144,18 +148,33 @@ def process_joyose():
     AdbUtils.exec_as_root('pm clear com.xiaomi.joyose')
 
 
+@process_in_tmp
+def process_systemui():
+    print('>>> Process MiuiSystemUI.apk')
+    AdbUtils.pull('/system_ext/priv-app/MiuiSystemUI/MiuiSystemUI.apk')
+    apk_file = ApkFile('MiuiSystemUI.apk')
+    apk_file.decode()
+
+    smali_file = apk_file.open_smali('com/android/settingslib/bluetooth/LocalBluetoothAdapter.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'isSupportBluetoothRestrict'
+    smali_file.method_return0(specifier)
+
+    path = apk_file.build()
+    AdbUtils.push_as_root(path, '/system_ext/priv-app/MiuiSystemUI/')
+
+
 def main():
     AdbUtils.mount_rw('/')
-    AdbUtils.mount_rw('/vendor')
+    AdbUtils.mount_rw('/system_ext')
     AdbUtils.mount_rw('/product')
+    AdbUtils.mount_rw('/vendor')
 
-    # AdbUtils.exec_as_root(
-    #     'mv /system/app/MIUIThemeManager/MIUIThemeManager.apk /system/app/MIUIThemeManager/MIUIThemeManager.apk0')
-    # exit()
     delete_rubbish()
     process_security_center()
     process_power_keeper()
     process_joyose()
+    process_systemui()
 
 
 if __name__ == '__main__':

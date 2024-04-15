@@ -16,12 +16,10 @@ class ApkFile(object):
 
     def build(self, sign=False):
         output_file = os.path.join(self.__output_dir, 'dist', os.path.basename(self.__path))
-        if sign:
-            ApkUtils.build(self.__output_dir)
-            ApkUtils.sign(output_file)
-        else:
-            ApkUtils.build(self.__output_dir, True)
+        ApkUtils.build(self.__output_dir, not sign)
         ApkUtils.zipalign(output_file)
+        if sign:
+            ApkUtils.sign(output_file)
         return output_file
 
     def open_smali(self, file: str):
@@ -34,10 +32,10 @@ class ApkFile(object):
     def find_smali(self, *keywords: str):
         files = glob.glob(os.path.join(self.__output_dir, r'smali*/**/*.smali'), recursive=True)
         for file in files:
-            keywordSet = set(keywords)
+            keyword_set = set(keywords)
             for line in open(file, mode='r'):
                 for keyword in keywords:
                     if keyword in line:
-                        keywordSet.discard(keyword)
-            if len(keywordSet) == 0:
+                        keyword_set.discard(keyword)
+            if len(keyword_set) == 0:
                 return SmaliParser(file).make()
