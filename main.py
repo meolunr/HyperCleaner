@@ -1,10 +1,17 @@
 import encodings.utf_8
 import os
 import shutil
+import zipfile
 
 from build import ApkFile
 from build.method_specifier import MethodSpecifier
 from util import AdbUtils
+
+OUT_DIR = 'out'
+
+
+def log(string: str):
+    print(f'>>> {string}')
 
 
 def process_in_tmp(func):
@@ -164,17 +171,26 @@ def process_systemui():
     AdbUtils.push_as_root(path, '/system_ext/priv-app/MiuiSystemUI/')
 
 
-def main():
-    AdbUtils.mount_rw('/')
-    AdbUtils.mount_rw('/system_ext')
-    AdbUtils.mount_rw('/product')
-    AdbUtils.mount_rw('/vendor')
+def unzip():
+    test_file = 'miui_SHENNONG_OS1.0.33.0.UNBCNXM_bd2a9334c8_14.0.zip'
+    log(f'Unpack {test_file}')
+    with zipfile.ZipFile(test_file) as file:
+        file.extract('payload.bin', OUT_DIR)
 
-    delete_rubbish()
-    process_security_center()
-    process_power_keeper()
-    process_joyose()
-    process_systemui()
+
+def main():
+    unzip()
+    os.chdir(OUT_DIR)
+    # AdbUtils.mount_rw('/')
+    # AdbUtils.mount_rw('/system_ext')
+    # AdbUtils.mount_rw('/product')
+    # AdbUtils.mount_rw('/vendor')
+
+    # delete_rubbish()
+    # process_security_center()
+    # process_power_keeper()
+    # process_joyose()
+    # process_systemui()
 
 
 if __name__ == '__main__':
