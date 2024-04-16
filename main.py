@@ -1,6 +1,7 @@
 import encodings.utf_8
 import os
 import shutil
+import sys
 import zipfile
 
 from build import ApkFile
@@ -8,6 +9,7 @@ from build.method_specifier import MethodSpecifier
 from util import AdbUtils
 
 OUT_DIR = 'out'
+BIN_DIR = os.path.join(sys.path[0], 'bin')
 
 
 def log(string: str):
@@ -173,14 +175,26 @@ def process_systemui():
 
 def unzip():
     test_file = 'miui_SHENNONG_OS1.0.33.0.UNBCNXM_bd2a9334c8_14.0.zip'
-    log(f'Unpack {test_file}')
+    log(f'解压 {test_file}')
     with zipfile.ZipFile(test_file) as file:
         file.extract('payload.bin', OUT_DIR)
 
 
+def dump_payload():
+    if os.path.exists('payload.bin'):
+        payload = os.path.join(BIN_DIR, 'payload.exe')
+        os.system(f'{payload} -o image payload.bin')
+    else:
+        log('未找到 payload.bin 文件')
+        exit()
+
+
 def main():
-    unzip()
+    # unzip()
     os.chdir(OUT_DIR)
+
+    # dump_payload()
+
     # AdbUtils.mount_rw('/')
     # AdbUtils.mount_rw('/system_ext')
     # AdbUtils.mount_rw('/product')
