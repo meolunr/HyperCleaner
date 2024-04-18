@@ -4,6 +4,7 @@ import shutil
 import sys
 import zipfile
 
+import imgfile
 from build import ApkFile
 from build.method_specifier import MethodSpecifier
 from util import AdbUtils
@@ -189,11 +190,20 @@ def dump_payload():
         exit()
 
 
+def unpack_img():
+    extract_erofs = os.path.join(BIN_DIR, 'extract.erofs.exe')
+    for img in os.listdir('image'):
+        file = os.path.join('image', img)
+        if imgfile.file_system(file) == 'erofs':
+            os.system(f'{extract_erofs} -x -i {file}')
+
+
 def main():
     # unzip()
     os.chdir(OUT_DIR)
-
     # dump_payload()
+    unpack_img()
+    os.chdir('..')
 
     # AdbUtils.mount_rw('/')
     # AdbUtils.mount_rw('/system_ext')
