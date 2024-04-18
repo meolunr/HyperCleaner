@@ -174,6 +174,7 @@ def unpack_img():
     for img in os.listdir('image'):
         file = os.path.join('image', img)
         if imgfile.file_system(file) == 'erofs':
+            log(f'从 {img} 中提取分区文件')
             os.system(f'{extract_erofs} -x -i {file}')
 
 
