@@ -1,10 +1,10 @@
-import encodings.utf_8
 import os
 import shutil
 import sys
 import zipfile
 
 import imgfile
+import modifier
 from build import ApkFile
 from build.method_specifier import MethodSpecifier
 from util import AdbUtils
@@ -33,27 +33,6 @@ def process_in_tmp(func):
         return result
 
     return wrapper
-
-
-def delete_rubbish():
-    def ignore_annotation(line: str):
-        annotation_index = line.find('#')
-        if annotation_index >= 0:
-            line = line[:annotation_index]
-        return line.strip()
-
-    model = AdbUtils.exec_with_result('getprop ro.product.name')[:-1]
-    print('>>> Delete rubbish files, device: %s' % model)
-
-    rubbish_file_list = 'rubbish-files-%s.txt' % model
-    if not os.path.isfile(rubbish_file_list):
-        rubbish_file_list = 'rubbish-files.txt'
-
-    with open(rubbish_file_list, encoding=encodings.utf_8.getregentry().name) as file:
-        for rubbish in map(ignore_annotation, file.readlines()):
-            if len(rubbish) != 0:
-                print('Deleting %s' % rubbish)
-                AdbUtils.exec_as_root('rm -rf %s' % rubbish)
 
 
 def disable_wakeup_dialog(apk_file: ApkFile):
@@ -202,7 +181,8 @@ def main():
     # unzip()
     os.chdir(OUT_DIR)
     # dump_payload()
-    unpack_img()
+    # unpack_img()
+    modifier.do()
     os.chdir('..')
 
     # AdbUtils.mount_rw('/')
