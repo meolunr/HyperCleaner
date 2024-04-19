@@ -1,10 +1,10 @@
 import os
+import re
 import shutil
 import sys
 import zipfile
 
 import imgfile
-import modifier
 from build import ApkFile
 from build.method_specifier import MethodSpecifier
 from util import AdbUtils
@@ -178,12 +178,40 @@ def unpack_img():
             os.system(f'{extract_erofs} -x -i {file}')
 
 
+def patch_vbmeta(file):
+    avb_magic = b'AVB0'
+    flags_offset = 0x7b
+    flags_to_set = b'\x03'
+
+    with open(file, 'rb+') as f:
+        buf = f.read(len(avb_magic))
+        if buf == avb_magic:
+            f.seek(flags_offset)
+            f.write(flags_to_set)
+        else:
+            print('无法修改，非验证引导文件')
+
+
+def disable_avb_verify():
+    with open('vendor/etc/fstab.qcom', 'r+') as f:
+        lines = f.readlines()
+        for i, line in enumerate(lines):
+            line = re.sub(',avb=.+?,', ',', line)
+            line = re.sub(',avb_keys=.+avbpubkey', '', line)
+            lines[i] = line
+        f.seek(0)
+        f.truncate()
+        f.writelines(lines)
+
+
 def main():
     # unzip()
     os.chdir(OUT_DIR)
     # dump_payload()
     # unpack_img()
-    modifier.do()
+    patch_vbmeta()
+    disable_avb_verify()
+    # appmodifier.run()
     os.chdir('..')
 
     # AdbUtils.mount_rw('/')

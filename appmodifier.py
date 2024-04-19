@@ -25,5 +25,5 @@ def rm_files():
                 AdbUtils.exec_as_root('rm -rf %s' % rubbish)
 
 
-def do():
+def run():
     rm_files()
