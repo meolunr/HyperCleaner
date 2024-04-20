@@ -179,6 +179,7 @@ def unpack_img():
 
 
 def patch_vbmeta(file):
+    log('修补 vbmeta')
     avb_magic = b'AVB0'
     flags_offset = 0x7b
     flags_to_set = b'\x03'
@@ -192,11 +193,12 @@ def patch_vbmeta(file):
             print('无法修改，非验证引导文件')
 
 
-def disable_avb_verify():
-    with open('vendor/etc/fstab.qcom', 'r+') as f:
+def disable_avb_verify(file: str):
+    log(f'禁用 AVB 验证引导: {file}')
+    with open(file, 'r+') as f:
         lines = f.readlines()
         for i, line in enumerate(lines):
-            line = re.sub(',avb=.+?,', ',', line)
+            line = re.sub(',avb(?:=.+?,|,)', ',', line)
             line = re.sub(',avb_keys=.+avbpubkey', '', line)
             lines[i] = line
         f.seek(0)
@@ -209,8 +211,16 @@ def main():
     os.chdir(OUT_DIR)
     # dump_payload()
     # unpack_img()
-    patch_vbmeta()
-    disable_avb_verify()
+    # patch_vbmeta()
+
+    etc = os.sep + 'etc'
+    for root, _, files in os.walk('.'):
+        if root.endswith(etc):
+            for file in files:
+                if file.startswith('fstab.'):
+                    path = os.path.join(root, file)
+                    disable_avb_verify(path)
+
     # appmodifier.run()
     os.chdir('..')
 
