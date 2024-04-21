@@ -179,7 +179,7 @@ def unpack_img():
 
 
 def patch_vbmeta(file):
-    log('修补 vbmeta')
+    log(f'修补 vbmeta: {file}')
     avb_magic = b'AVB0'
     flags_offset = 0x7b
     flags_to_set = b'\x03'
@@ -215,14 +215,17 @@ def main():
     os.chdir(OUT_DIR)
     # dump_payload()
     # unpack_img()
-    # patch_vbmeta()
 
-    etc = os.sep + 'etc'
-    for root, _, files in os.walk('.'):
-        if root.endswith(etc):
-            for file in files:
-                if file.startswith('fstab.'):
-                    disable_avb_and_dm_verify(os.path.join(root, file))
+    for img in os.listdir('image'):
+        if img.startswith('vbmeta'):
+            patch_vbmeta(os.path.join('image', img))
+
+    # etc = os.sep + 'etc'
+    # for root, _, files in os.walk('.'):
+    #     if root.endswith(etc):
+    #         for file in files:
+    #             if file.startswith('fstab.'):
+    #                 disable_avb_and_dm_verify(os.path.join(root, file))
 
     # appmodifier.run()
     os.chdir('..')
