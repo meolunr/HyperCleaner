@@ -3,6 +3,7 @@ import re
 import shutil
 import sys
 import zipfile
+from glob import glob
 
 import imgfile
 from build import ApkFile
@@ -194,7 +195,7 @@ def patch_vbmeta(file):
 
 
 def disable_avb_and_dm_verity(file: str):
-    log(f'禁用 AVB 验证引导和 Data 强制加密: {os.path.normpath(file)}')
+    log(f'禁用 AVB 验证引导和 Data 加密: {file}')
     with open(file, 'r+') as f:
         lines = f.readlines()
         for i, line in enumerate(lines):
@@ -216,16 +217,11 @@ def main():
     # dump_payload()
     # unpack_img()
 
-    # for img in os.listdir('image'):
-    #     if img.startswith('vbmeta'):
-    #         patch_vbmeta(os.path.join('image', img))
+    # for img in glob('vbmeta*.img', root_dir='image'):
+    #     patch_vbmeta(os.path.join('image', img))
 
-    # etc = os.sep + 'etc'
-    # for root, _, files in os.walk('.'):
-    #     if root.endswith(etc):
-    #         for file in files:
-    #             if file.startswith('fstab.'):
-    #                 disable_avb_and_dm_verity(os.path.join(root, file))
+    # for file in glob('**/etc/fstab.*', recursive=True):
+    #     disable_avb_and_dm_verity(file)
 
     # appmodifier.run()
     os.chdir('..')
