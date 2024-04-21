@@ -193,7 +193,7 @@ def patch_vbmeta(file):
             print('无法修改，非验证引导文件')
 
 
-def disable_avb_and_dm_verify(file: str):
+def disable_avb_and_dm_verity(file: str):
     log(f'禁用 AVB 验证引导和 Data 强制加密: {os.path.normpath(file)}')
     with open(file, 'r+') as f:
         lines = f.readlines()
@@ -216,16 +216,16 @@ def main():
     # dump_payload()
     # unpack_img()
 
-    for img in os.listdir('image'):
-        if img.startswith('vbmeta'):
-            patch_vbmeta(os.path.join('image', img))
+    # for img in os.listdir('image'):
+    #     if img.startswith('vbmeta'):
+    #         patch_vbmeta(os.path.join('image', img))
 
     # etc = os.sep + 'etc'
     # for root, _, files in os.walk('.'):
     #     if root.endswith(etc):
     #         for file in files:
     #             if file.startswith('fstab.'):
-    #                 disable_avb_and_dm_verify(os.path.join(root, file))
+    #                 disable_avb_and_dm_verity(os.path.join(root, file))
 
     # appmodifier.run()
     os.chdir('..')
