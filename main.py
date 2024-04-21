@@ -193,13 +193,17 @@ def patch_vbmeta(file):
             print('无法修改，非验证引导文件')
 
 
-def disable_avb_verify(file: str):
-    log(f'禁用 AVB 验证引导: {file}')
+def disable_avb_and_dm_verify(file: str):
+    log(f'禁用 AVB 验证引导和 Data 强制加密: {os.path.normpath(file)}')
     with open(file, 'r+') as f:
         lines = f.readlines()
         for i, line in enumerate(lines):
             line = re.sub(',avb(?:=.+?,|,)', ',', line)
             line = re.sub(',avb_keys=.+avbpubkey', '', line)
+
+            line = re.sub(',fileencryption=.+?,', ',', line)
+            line = re.sub(',metadata_encryption=.+?,', ',', line)
+            line = re.sub(',keydirectory=.+?,', ',', line)
             lines[i] = line
         f.seek(0)
         f.truncate()
@@ -218,8 +222,7 @@ def main():
         if root.endswith(etc):
             for file in files:
                 if file.startswith('fstab.'):
-                    path = os.path.join(root, file)
-                    disable_avb_verify(path)
+                    disable_avb_and_dm_verify(os.path.join(root, file))
 
     # appmodifier.run()
     os.chdir('..')
