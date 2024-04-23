@@ -3,7 +3,6 @@ import re
 import shutil
 import sys
 import zipfile
-from glob import glob
 
 import imgfile
 from build import ApkFile
@@ -12,6 +11,7 @@ from util import AdbUtils
 
 OUT_DIR = 'out'
 BIN_DIR = os.path.join(sys.path[0], 'bin')
+UNPACK_PARTITION = ('mi_ext', 'odm', 'product', 'system', 'system_dlkm', 'system_ext', 'vendor', 'vendor_dlkm')
 
 
 def log(string: str):
@@ -163,6 +163,7 @@ def unzip():
 
 def dump_payload():
     if os.path.exists('payload.bin'):
+        log('解包 payload.bin')
         payload = os.path.join(BIN_DIR, 'payload.exe')
         os.system(f'{payload} -o image payload.bin')
     else:
@@ -175,7 +176,7 @@ def unpack_img():
     for img in os.listdir('image'):
         file = os.path.join('image', img)
         if imgfile.file_system(file) == 'erofs':
-            log(f'从 {img} 中提取分区文件')
+            log(f'提取分区文件: {img}')
             os.system(f'{extract_erofs} -x -i {file}')
 
 
@@ -211,6 +212,15 @@ def disable_avb_and_dm_verity(file: str):
         f.writelines(lines)
 
 
+def repack_img():
+    mkfs_erofs = os.path.join(BIN_DIR, 'mkfs.erofs.exe')
+    for partition in UNPACK_PARTITION:
+        log(f'打包分区文件: {partition}')
+        fs_config = f'config/{partition}_fs_config'
+        contexts = f'config/{partition}_file_contexts'
+        os.system(f'{mkfs_erofs} -zlz4hc,1 -T 1230768000 --mount-point=/{partition} --fs-config-file={fs_config} --file-contexts={contexts} image/{partition}.img {partition}')
+
+
 def main():
     # unzip()
     os.chdir(OUT_DIR)
@@ -224,6 +234,7 @@ def main():
     #     disable_avb_and_dm_verity(file)
 
     # appmodifier.run()
+    repack_img()
     os.chdir('..')
 
     # AdbUtils.mount_rw('/')
