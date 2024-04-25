@@ -223,6 +223,7 @@ def repack_img():
 
 
 def repack_super():
+    log('打包 super.img')
     super_size = 9126805504
     output = io.StringIO()
     output.write(os.path.join(BIN_DIR, 'lpmake.exe '))
@@ -245,6 +246,9 @@ def repack_super():
     output.write('--output image/super.img')
     cmd = output.getvalue()
     os.system(cmd)
+
+    zstd = os.path.join(BIN_DIR, 'zstd.exe')
+    os.system(f'{zstd} --rm image/super.img -o image/super.zst')
 
 
 def main():
