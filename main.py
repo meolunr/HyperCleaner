@@ -1,3 +1,4 @@
+import io
 import os
 import re
 import shutil
@@ -11,7 +12,7 @@ from util import AdbUtils
 
 OUT_DIR = 'out'
 BIN_DIR = os.path.join(sys.path[0], 'bin')
-UNPACK_PARTITION = ('mi_ext', 'odm', 'product', 'system', 'system_dlkm', 'system_ext', 'vendor', 'vendor_dlkm')
+UNPACK_IMG = ('mi_ext', 'odm', 'product', 'system', 'system_dlkm', 'system_ext', 'vendor', 'vendor_dlkm')
 
 
 def log(string: str):
@@ -214,11 +215,36 @@ def disable_avb_and_dm_verity(file: str):
 
 def repack_img():
     mkfs_erofs = os.path.join(BIN_DIR, 'mkfs.erofs.exe')
-    for partition in UNPACK_PARTITION:
-        log(f'打包分区文件: {partition}')
-        fs_config = f'config/{partition}_fs_config'
-        contexts = f'config/{partition}_file_contexts'
-        os.system(f'{mkfs_erofs} -zlz4hc,1 -T 1230768000 --mount-point=/{partition} --fs-config-file={fs_config} --file-contexts={contexts} image/{partition}.img {partition}')
+    for img in UNPACK_IMG:
+        log(f'打包分区文件: {img}')
+        fs_config = f'config/{img}_fs_config'
+        contexts = f'config/{img}_file_contexts'
+        os.system(f'{mkfs_erofs} -zlz4hc,1 -T 1230768000 --mount-point /{img} --fs-config-file {fs_config} --file-contexts {contexts} image/{img}.img {img}')
+
+
+def repack_super():
+    super_size = 9126805504
+    output = io.StringIO()
+    output.write(os.path.join(BIN_DIR, 'lpmake.exe '))
+    output.write('--metadata-size 65536 ')
+    output.write('--super-name super ')
+    output.write('--metadata-slots 3 ')
+    output.write('--virtual-ab ')
+    output.write(f'--device super:{super_size} ')
+    output.write(f'--group qti_dynamic_partitions_a:{super_size} ')
+    output.write(f'--group qti_dynamic_partitions_b:{super_size} ')
+
+    for img in UNPACK_IMG:
+        img_path = f'image/{img}.img'
+        size = os.path.getsize(img_path)
+        output.write(f'--partition {img}_a:readonly:{size}:qti_dynamic_partitions_a ')
+        output.write(f'--image {img}_a={img_path} ')
+        output.write(f'--partition {img}_b:none:0:qti_dynamic_partitions_b ')
+
+    output.write('--force-full-image ')
+    output.write('--output image/super.img')
+    cmd = output.getvalue()
+    os.system(cmd)
 
 
 def main():
@@ -234,7 +260,8 @@ def main():
     #     disable_avb_and_dm_verity(file)
 
     # appmodifier.run()
-    repack_img()
+    # repack_img()
+    repack_super()
     os.chdir('..')
 
     # AdbUtils.mount_rw('/')
