@@ -248,7 +248,7 @@ def repack_super():
     os.system(cmd)
 
     zstd = os.path.join(BIN_DIR, 'zstd.exe')
-    os.system(f'{zstd} --rm images/super.img -o images/super.zst')
+    os.system(f'{zstd} --rm images/super.img -o images/super.img.zst')
 
 
 def generate_script():

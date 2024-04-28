@@ -1,0 +1,176 @@
+#!/sbin/sh
+
+outFd=/proc/self/fd/$2
+zipFile="$3"
+
+print() {
+  echo -e "print $1\nui_print" >> $outFd
+}
+
+waitForVolumeKey() {
+	print "- 按音量[+]选择"是"，按音量[-]选择"否""
+	keyInfo=true
+	while $keyInfo;do
+		keyInfo=$(getevent -qlc 1 | grep KEY_VOLUME)
+		if [ "$keyInfo" == "" ];then
+			continue
+		else
+			isUpKey=$(echo $keyInfo | grep KEY_VOLUMEUP)
+			[ "$isUpKey" != "" ] && return 0 || return 1
+			break
+		fi
+	done
+}
+
+flash() {
+  print "- 正在刷入分区 $(echo $2 | cut -d '/' -f 6) "
+  unzip -p "$zipFile" $1 > $2
+}
+
+flashZstd() {
+  print "- 正在刷写分区 $(echo $2 | cut -d '/' -f 6) "
+  unzip -p "$zipFile" $1 | /tmp/META-INF/com/google/android/zstd -c -d > $2
+}
+
+remapSuper() {
+	if [ -e /dev/block/mapper/$1 ]
+	then
+	    lptools unmap $1
+		lptools map $1
+	fi
+}
+
+#####################################################################################
+
+if [ -d /tmp ]
+then
+    rm -rf /tmp
+fi
+mkdir -p /tmp
+unzip "$zipFile" META-INF/com/google/android/zstd -d /tmp
+chmod -R 0755 /tmp
+
+deviceA=$(getprop ro.product.name)
+deviceB=shennong
+print "=============================="
+print " "
+print "    < HyperCleaner >"
+print " "
+print "    https://github.com/meolunr/HyperCleaner"
+print " "
+print "    设备代号：$deviceA"
+print "    ROM 代号：$deviceB"
+print "    ROM 版本：OS1.1.45.14.UNBCNXM"
+print "    Android 版本：14"
+print " "
+print "=============================="
+
+if [ "$deviceA" != "$deviceB" ];then
+	print "- 设备代号与 ROM 代号不匹配，是否继续刷入？"
+	if waitForVolumeKey ;then
+		print "- 继续刷入"
+	else
+		print "- 停止刷入"
+		exit 1
+	fi
+fi
+
+print "- 正在校验 MD5"
+romName=$(basename $zipFile)
+hashA=$(md5sum $zipFile |head -c 10)
+hashB=$(echo $romName |cut -d '_' -f 4)
+
+if [ "$hashA" != "$hashB" ];then
+	print "- MD5 校验失败，可能是文件损坏或您修改过文件名，是否继续刷入？"
+	if waitForVolumeKey ;then
+		print "- 继续刷入"
+	else
+		print "- 停止刷入"
+		exit 1
+	fi
+fi
+
+print "- 开始刷入"
+flash "images/xbl_ramdump.img" "/dev/block/bootdevice/by-name/xbl_ramdump_a"
+flash "images/xbl_ramdump.img" "/dev/block/bootdevice/by-name/xbl_ramdump_b"
+flash "images/xbl_config.img" "/dev/block/bootdevice/by-name/xbl_config_a"
+flash "images/xbl_config.img" "/dev/block/bootdevice/by-name/xbl_config_b"
+flash "images/xbl.img" "/dev/block/bootdevice/by-name/xbl_a"
+flash "images/xbl.img" "/dev/block/bootdevice/by-name/xbl_b"
+flash "images/vm-bootsys.img" "/dev/block/bootdevice/by-name/vm-bootsys_a"
+flash "images/vm-bootsys.img" "/dev/block/bootdevice/by-name/vm-bootsys_b"
+flash "images/vendor_boot.img" "/dev/block/bootdevice/by-name/vendor_boot_a"
+flash "images/vendor_boot.img" "/dev/block/bootdevice/by-name/vendor_boot_b"
+flash "images/vbmeta_system.img" "/dev/block/bootdevice/by-name/vbmeta_system_a"
+flash "images/vbmeta_system.img" "/dev/block/bootdevice/by-name/vbmeta_system_b"
+flash "images/vbmeta.img" "/dev/block/bootdevice/by-name/vbmeta_a"
+flash "images/vbmeta.img" "/dev/block/bootdevice/by-name/vbmeta_b"
+flash "images/uefisecapp.img" "/dev/block/bootdevice/by-name/uefisecapp_a"
+flash "images/uefisecapp.img" "/dev/block/bootdevice/by-name/uefisecapp_b"
+flash "images/uefi.img" "/dev/block/bootdevice/by-name/uefi_a"
+flash "images/uefi.img" "/dev/block/bootdevice/by-name/uefi_b"
+flash "images/tz.img" "/dev/block/bootdevice/by-name/tz_a"
+flash "images/tz.img" "/dev/block/bootdevice/by-name/tz_b"
+flash "images/spuservice.img" "/dev/block/bootdevice/by-name/spuservice_a"
+flash "images/spuservice.img" "/dev/block/bootdevice/by-name/spuservice_b"
+flash "images/shrm.img" "/dev/block/bootdevice/by-name/shrm_a"
+flash "images/shrm.img" "/dev/block/bootdevice/by-name/shrm_b"
+flash "images/qupfw.img" "/dev/block/bootdevice/by-name/qupfw_a"
+flash "images/qupfw.img" "/dev/block/bootdevice/by-name/qupfw_b"
+flash "images/multiimgqti.img" "/dev/block/bootdevice/by-name/multiimgqti_a"
+flash "images/multiimgqti.img" "/dev/block/bootdevice/by-name/multiimgqti_b"
+flash "images/modemfirmware.img" "/dev/block/bootdevice/by-name/modemfirmware_a"
+flash "images/modemfirmware.img" "/dev/block/bootdevice/by-name/modemfirmware_b"
+flash "images/modem.img" "/dev/block/bootdevice/by-name/modem_a"
+flash "images/modem.img" "/dev/block/bootdevice/by-name/modem_b"
+flash "images/keymaster.img" "/dev/block/bootdevice/by-name/keymaster_a"
+flash "images/keymaster.img" "/dev/block/bootdevice/by-name/keymaster_b"
+flash "images/imagefv.img" "/dev/block/bootdevice/by-name/imagefv_a"
+flash "images/imagefv.img" "/dev/block/bootdevice/by-name/imagefv_b"
+flash "images/hyp.img" "/dev/block/bootdevice/by-name/hyp_a"
+flash "images/hyp.img" "/dev/block/bootdevice/by-name/hyp_b"
+flash "images/featenabler.img" "/dev/block/bootdevice/by-name/featenabler_a"
+flash "images/featenabler.img" "/dev/block/bootdevice/by-name/featenabler_b"
+flash "images/dtbo.img" "/dev/block/bootdevice/by-name/dtbo_a"
+flash "images/dtbo.img" "/dev/block/bootdevice/by-name/dtbo_b"
+flash "images/dsp.img" "/dev/block/bootdevice/by-name/dsp_a"
+flash "images/dsp.img" "/dev/block/bootdevice/by-name/dsp_b"
+flash "images/devcfg.img" "/dev/block/bootdevice/by-name/devcfg_a"
+flash "images/devcfg.img" "/dev/block/bootdevice/by-name/devcfg_b"
+flash "images/cpucp_dtb.img" "/dev/block/bootdevice/by-name/cpucp_dtb_a"
+flash "images/cpucp_dtb.img" "/dev/block/bootdevice/by-name/cpucp_dtb_b"
+flash "images/cpucp.img" "/dev/block/bootdevice/by-name/cpucp_a"
+flash "images/cpucp.img" "/dev/block/bootdevice/by-name/cpucp_b"
+flash "images/bluetooth.img" "/dev/block/bootdevice/by-name/bluetooth_a"
+flash "images/bluetooth.img" "/dev/block/bootdevice/by-name/bluetooth_b"
+flash "images/aop_config.img" "/dev/block/bootdevice/by-name/aop_config_a"
+flash "images/aop_config.img" "/dev/block/bootdevice/by-name/aop_config_b"
+flash "images/aop.img" "/dev/block/bootdevice/by-name/aop_a"
+flash "images/aop.img" "/dev/block/bootdevice/by-name/aop_b"
+flash "images/abl.img" "/dev/block/bootdevice/by-name/abl_a"
+flash "images/abl.img" "/dev/block/bootdevice/by-name/abl_b"
+flash "images/boot.img" "/dev/block/bootdevice/by-name/boot_a"
+flash "images/boot.img" "/dev/block/bootdevice/by-name/boot_b"
+flash "images/init_boot.img" "/dev/block/bootdevice/by-name/init_boot_a"
+flash "images/init_boot.img" "/dev/block/bootdevice/by-name/init_boot_b"
+flashZstd "images/super.img.zst" "/dev/block/bootdevice/by-name/super"
+
+remapSuper mi_ext_a
+remapSuper odm_a
+remapSuper product_a
+remapSuper system_a
+remapSuper system_dlkm_a
+remapSuper system_ext_a
+remapSuper vendor_a
+remapSuper vendor_dlkm_a
+
+print "- 清除缓存"
+rm -rf /data/dalvik-cache/arm/*
+rm -rf /data/dalvik-cache/arm64/*
+rm -rf /data/system/package_cache/*
+print " "
+print " "
+print "- 已完成"
+print " "
+
+exit 0
