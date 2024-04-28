@@ -247,6 +247,11 @@ def repack_super():
     cmd = output.getvalue()
     os.system(cmd)
 
+    for img in UNPACK_IMG:
+        img_path = f'images/{img}.img'
+        if os.path.exists(img_path):
+            os.remove(img_path)
+
     zstd = os.path.join(BIN_DIR, 'zstd.exe')
     os.system(f'{zstd} --rm images/super.img -o images/super.img.zst')
 
@@ -260,6 +265,11 @@ def main():
     # unzip()
     os.chdir(OUT_DIR)
     # dump_payload()
+
+    recovery_img = 'images/recovery.img'
+    if os.path.exists(recovery_img):
+        os.remove(recovery_img)
+
     # unpack_img()
 
     # for img in glob('vbmeta*.img', root_dir='images'):
