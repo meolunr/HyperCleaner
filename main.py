@@ -166,7 +166,7 @@ def dump_payload():
     if os.path.exists('payload.bin'):
         log('解包 payload.bin')
         payload = os.path.join(BIN_DIR, 'payload.exe')
-        os.system(f'{payload} -o image payload.bin')
+        os.system(f'{payload} -o images payload.bin')
     else:
         log('未找到 payload.bin 文件')
         exit()
@@ -174,8 +174,8 @@ def dump_payload():
 
 def unpack_img():
     extract_erofs = os.path.join(BIN_DIR, 'extract.erofs.exe')
-    for img in os.listdir('image'):
-        file = os.path.join('image', img)
+    for img in os.listdir('images'):
+        file = os.path.join('images', img)
         if imgfile.file_system(file) == 'erofs':
             log(f'提取分区文件: {img}')
             os.system(f'{extract_erofs} -x -i {file}')
@@ -219,7 +219,7 @@ def repack_img():
         log(f'打包分区文件: {img}')
         fs_config = f'config/{img}_fs_config'
         contexts = f'config/{img}_file_contexts'
-        os.system(f'{mkfs_erofs} -zlz4hc,1 -T 1230768000 --mount-point /{img} --fs-config-file {fs_config} --file-contexts {contexts} image/{img}.img {img}')
+        os.system(f'{mkfs_erofs} -zlz4hc,1 -T 1230768000 --mount-point /{img} --fs-config-file {fs_config} --file-contexts {contexts} images/{img}.img {img}')
 
 
 def repack_super():
@@ -236,19 +236,24 @@ def repack_super():
     output.write(f'--group qti_dynamic_partitions_b:{super_size} ')
 
     for img in UNPACK_IMG:
-        img_path = f'image/{img}.img'
+        img_path = f'images/{img}.img'
         size = os.path.getsize(img_path)
         output.write(f'--partition {img}_a:readonly:{size}:qti_dynamic_partitions_a ')
         output.write(f'--image {img}_a={img_path} ')
         output.write(f'--partition {img}_b:none:0:qti_dynamic_partitions_b ')
 
     output.write('--force-full-image ')
-    output.write('--output image/super.img')
+    output.write('--output images/super.img')
     cmd = output.getvalue()
     os.system(cmd)
 
     zstd = os.path.join(BIN_DIR, 'zstd.exe')
-    os.system(f'{zstd} --rm image/super.img -o image/super.zst')
+    os.system(f'{zstd} --rm images/super.img -o images/super.zst')
+
+
+def generate_script():
+    # 打包生成刷机脚本
+    pass
 
 
 def main():
@@ -257,15 +262,16 @@ def main():
     # dump_payload()
     # unpack_img()
 
-    # for img in glob('vbmeta*.img', root_dir='image'):
-    #     patch_vbmeta(os.path.join('image', img))
+    # for img in glob('vbmeta*.img', root_dir='images'):
+    #     patch_vbmeta(os.path.join('images', img))
 
     # for file in glob('**/etc/fstab.*', recursive=True):
     #     disable_avb_and_dm_verity(file)
 
     # appmodifier.run()
     # repack_img()
-    repack_super()
+    # repack_super()
+    generate_script()
     os.chdir('..')
 
     # AdbUtils.mount_rw('/')
