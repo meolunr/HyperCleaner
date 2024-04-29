@@ -261,14 +261,20 @@ def generate_script():
     pass
 
 
+def compress_zip():
+    with zipfile.ZipFile('rom.zip', 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as f:
+        for i in os.listdir('images'):
+            f.write(os.path.join('images', i))
+
+
 def main():
     # unzip()
     os.chdir(OUT_DIR)
     # dump_payload()
 
-    recovery_img = 'images/recovery.img'
-    if os.path.exists(recovery_img):
-        os.remove(recovery_img)
+    # recovery_img = 'images/recovery.img'
+    # if os.path.exists(recovery_img):
+    #     os.remove(recovery_img)
 
     # unpack_img()
 
@@ -281,7 +287,8 @@ def main():
     # appmodifier.run()
     # repack_img()
     # repack_super()
-    generate_script()
+    # generate_script()
+    compress_zip()
     os.chdir('..')
 
     # AdbUtils.mount_rw('/')
