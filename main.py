@@ -1,16 +1,18 @@
+import hashlib
 import io
 import os
 import re
 import shutil
 import sys
 import zipfile
+from glob import glob
 
+import appmodifier
 import imgfile
 from build import ApkFile
 from build.method_specifier import MethodSpecifier
 from util import AdbUtils
 
-OUT_DIR = 'out'
 BIN_DIR = os.path.join(sys.path[0], 'bin')
 OVERLAY_DIR = os.path.join(sys.path[0], 'overlay')
 UNPACK_IMG = ('mi_ext', 'odm', 'product', 'system', 'system_dlkm', 'system_ext', 'vendor', 'vendor_dlkm')
@@ -160,7 +162,7 @@ def unzip():
     test_file = 'miui_SHENNONG_OS1.0.33.0.UNBCNXM_bd2a9334c8_14.0.zip'
     log(f'解压 {test_file}')
     with zipfile.ZipFile(test_file) as file:
-        file.extract('payload.bin', OUT_DIR)
+        file.extract('payload.bin', 'out')
 
 
 def dump_payload():
@@ -177,7 +179,7 @@ def unpack_img():
     extract_erofs = os.path.join(BIN_DIR, 'extract.erofs.exe')
     for img in os.listdir('images'):
         file = os.path.join('images', img)
-        if imgfile.file_system(file) == 'erofs':
+        if imgfile.file_system(file) == imgfile.FS_TYPE_EROFS:
             log(f'提取分区文件: {img}')
             os.system(f'{extract_erofs} -x -i {file}')
 
@@ -253,11 +255,13 @@ def repack_super():
         if os.path.exists(img_path):
             os.remove(img_path)
 
+    log('使用 zstd 压缩 super.img')
     zstd = os.path.join(BIN_DIR, 'zstd.exe')
     os.system(f'{zstd} --rm images/super.img -o images/super.img.zst')
 
 
 def generate_script():
+    log('生成刷机脚本')
     with open(os.path.join(OVERLAY_DIR, 'update-binary'), encoding='utf-8') as fi:
         content = fi.read()
         with open('update-binary', 'w', encoding='utf-8') as fo:
@@ -265,34 +269,40 @@ def generate_script():
 
 
 def compress_zip():
-    with zipfile.ZipFile('rom.zip', 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as f:
+    log('生成刷机包')
+    with zipfile.ZipFile('tmp.zip', 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as f:
         for i in os.listdir('images'):
             f.write(os.path.join('images', i))
-
         f.write('update-binary', 'META-INF/com/google/android/update-binary')
         f.write(os.path.join(OVERLAY_DIR, 'zstd'), 'META-INF/com/google/android/zstd')
 
+    md5 = hashlib.md5()
+    with open('tmp.zip', 'rb') as f:
+        md5.update(f.read())
+    file_hash = md5.hexdigest()[:10]
+    os.rename('tmp.zip', f'HC_shennong_OS1.0.38.0_{file_hash}_14.zip')
+
 
 def main():
-    # unzip()
-    os.chdir(OUT_DIR)
-    # dump_payload()
+    unzip()
+    os.chdir('out')
+    dump_payload()
 
-    # recovery_img = 'images/recovery.img'
-    # if os.path.exists(recovery_img):
-    #     os.remove(recovery_img)
+    recovery_img = 'images/recovery.img'
+    if os.path.exists(recovery_img):
+        os.remove(recovery_img)
 
-    # unpack_img()
+    unpack_img()
 
-    # for img in glob('vbmeta*.img', root_dir='images'):
-    #     patch_vbmeta(os.path.join('images', img))
+    for img in glob('vbmeta*.img', root_dir='images'):
+        patch_vbmeta(os.path.join('images', img))
 
-    # for file in glob('**/etc/fstab.*', recursive=True):
-    #     disable_avb_and_dm_verity(file)
+    for file in glob('**/etc/fstab.*', recursive=True):
+        disable_avb_and_dm_verity(file)
 
-    # appmodifier.run()
-    # repack_img()
-    # repack_super()
+    appmodifier.run()
+    repack_img()
+    repack_super()
     generate_script()
     compress_zip()
     os.chdir('..')

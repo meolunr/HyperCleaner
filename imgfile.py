@@ -1,9 +1,13 @@
 import os
 
+FS_TYPE_EROFS = 'erofs'
+FS_TYPE_EXT4 = 'ext4'
+FS_TYPE_F2FS = 'f2fs'
+
 _FS_TYPES = [
-    ('erofs', 1024, b'\xe2\xe1\xf5\xe0'),
-    ('ext4', 1024 + 0x38, b'\123\357'),
-    ('f2fs', 1024, b'\x10\x20\xf5\xf2')
+    (FS_TYPE_EROFS, 1024, b'\xe2\xe1\xf5\xe0'),
+    (FS_TYPE_EXT4, 1024 + 0x38, b'\123\357'),
+    (FS_TYPE_F2FS, 1024, b'\x10\x20\xf5\xf2')
 ]
 
 

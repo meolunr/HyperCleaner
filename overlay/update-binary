@@ -28,7 +28,7 @@ flash() {
 }
 
 flashZstd() {
-  print "- 正在刷写分区 $(echo $2 | cut -d '/' -f 6) "
+  print "- 正在刷入分区 $(echo $2 | cut -d '/' -f 6) "
   unzip -p "$zipFile" $1 | /tmp/META-INF/com/google/android/zstd -c -d > $2
 }
 

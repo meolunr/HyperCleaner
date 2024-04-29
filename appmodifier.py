@@ -26,4 +26,5 @@ def rm_files():
 
 
 def run():
-    rm_files()
+    # rm_files()
+    print('Test appmodifier...')
