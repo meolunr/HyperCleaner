@@ -19,7 +19,7 @@ UNPACK_IMG = ('mi_ext', 'odm', 'product', 'system', 'system_dlkm', 'system_ext',
 
 
 def log(string: str):
-    print(f'>>> {string}')
+    print(f'\n>>> {string}')
 
 
 def process_in_tmp(func):
@@ -159,7 +159,7 @@ def process_systemui():
 
 
 def unzip():
-    test_file = 'miui_SHENNONG_OS1.0.33.0.UNBCNXM_bd2a9334c8_14.0.zip'
+    test_file = 'miui_SHENNONG_OS1.0.39.0.UNBCNXM_c67d65e7de_14.0.zip'
     log(f'解压 {test_file}')
     with zipfile.ZipFile(test_file) as file:
         file.extract('payload.bin', 'out')
@@ -280,7 +280,7 @@ def compress_zip():
     with open('tmp.zip', 'rb') as f:
         md5.update(f.read())
     file_hash = md5.hexdigest()[:10]
-    os.rename('tmp.zip', f'HC_shennong_OS1.0.38.0_{file_hash}_14.zip')
+    os.rename('tmp.zip', f'HC_shennong_OS1.0.39.0_{file_hash}_14.zip')
 
 
 def main():
@@ -292,7 +292,7 @@ def main():
     if os.path.exists(recovery_img):
         os.remove(recovery_img)
 
-    unpack_img()
+    # unpack_img()
 
     for img in glob('vbmeta*.img', root_dir='images'):
         patch_vbmeta(os.path.join('images', img))
@@ -301,7 +301,7 @@ def main():
         disable_avb_and_dm_verity(file)
 
     appmodifier.run()
-    repack_img()
+    # repack_img()
     repack_super()
     generate_script()
     compress_zip()

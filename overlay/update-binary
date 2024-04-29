@@ -4,7 +4,7 @@ outFd=/proc/self/fd/$2
 zipFile="$3"
 
 print() {
-  echo -e "print $1\nui_print" >> $outFd
+  echo -e "ui_print $1\nui_print" >>$outFd
 }
 
 waitForVolumeKey() {
@@ -168,7 +168,6 @@ print "- 清除缓存"
 rm -rf /data/dalvik-cache/arm/*
 rm -rf /data/dalvik-cache/arm64/*
 rm -rf /data/system/package_cache/*
-print " "
 print " "
 print "- 已完成"
 print " "
