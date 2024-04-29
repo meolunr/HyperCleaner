@@ -12,6 +12,7 @@ from util import AdbUtils
 
 OUT_DIR = 'out'
 BIN_DIR = os.path.join(sys.path[0], 'bin')
+OVERLAY_DIR = os.path.join(sys.path[0], 'overlay')
 UNPACK_IMG = ('mi_ext', 'odm', 'product', 'system', 'system_dlkm', 'system_ext', 'vendor', 'vendor_dlkm')
 
 
@@ -257,14 +258,19 @@ def repack_super():
 
 
 def generate_script():
-    # 打包生成刷机脚本
-    pass
+    with open(os.path.join(OVERLAY_DIR, 'update-binary'), encoding='utf-8') as fi:
+        content = fi.read()
+        with open('update-binary', 'w', encoding='utf-8') as fo:
+            fo.write(content)
 
 
 def compress_zip():
     with zipfile.ZipFile('rom.zip', 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as f:
         for i in os.listdir('images'):
             f.write(os.path.join('images', i))
+
+        f.write('update-binary', 'META-INF/com/google/android/update-binary')
+        f.write(os.path.join(OVERLAY_DIR, 'zstd'), 'META-INF/com/google/android/zstd')
 
 
 def main():
@@ -287,7 +293,7 @@ def main():
     # appmodifier.run()
     # repack_img()
     # repack_super()
-    # generate_script()
+    generate_script()
     compress_zip()
     os.chdir('..')
 
