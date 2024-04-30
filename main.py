@@ -264,12 +264,12 @@ def generate_script():
     log('生成刷机脚本')
     with open(os.path.join(OVERLAY_DIR, 'update-binary'), encoding='utf-8') as fi:
         content = fi.read()
-        with open('update-binary', 'w', encoding='utf-8') as fo:
+        with open('update-binary', 'w', encoding='utf-8', newline='') as fo:
             fo.write(content)
 
 
 def compress_zip():
-    log('生成刷机包')
+    log('构建刷机包')
     with zipfile.ZipFile('tmp.zip', 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as f:
         for i in os.listdir('images'):
             f.write(os.path.join('images', i))
