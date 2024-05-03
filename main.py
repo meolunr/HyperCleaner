@@ -5,10 +5,9 @@ import re
 import shutil
 import sys
 import zipfile
-from glob import glob
 
-import appmodifier
 import imgfile
+import vbmeta
 from build import ApkFile
 from build.method_specifier import MethodSpecifier
 from util import AdbUtils
@@ -161,8 +160,8 @@ def process_systemui():
 def unzip():
     test_file = 'miui_SHENNONG_OS1.0.39.0.UNBCNXM_c67d65e7de_14.0.zip'
     log(f'解压 {test_file}')
-    with zipfile.ZipFile(test_file) as file:
-        file.extract('payload.bin', 'out')
+    with zipfile.ZipFile(test_file) as f:
+        f.extract('payload.bin', 'out')
 
 
 def dump_payload():
@@ -286,25 +285,26 @@ def compress_zip():
 def main():
     unzip()
     os.chdir('out')
-    dump_payload()
+    vbmeta.patch('images/vbmeta.img')
+    # dump_payload()
 
-    recovery_img = 'images/recovery.img'
-    if os.path.exists(recovery_img):
-        os.remove(recovery_img)
-
+    # recovery_img = 'images/recovery.img'
+    # if os.path.exists(recovery_img):
+    #     os.remove(recovery_img)
+    #
     # unpack_img()
 
-    for img in glob('vbmeta*.img', root_dir='images'):
-        patch_vbmeta(os.path.join('images', img))
+    # for img in glob('vbmeta*.img', root_dir='images'):
+    #     patch_vbmeta(os.path.join('images', img))
 
-    for file in glob('**/etc/fstab.*', recursive=True):
-        disable_avb_and_dm_verity(file)
+    # for file in glob('**/etc/fstab.*', recursive=True):
+    #     disable_avb_and_dm_verity(file)
 
-    appmodifier.run()
+    # appmodifier.run()
     # repack_img()
-    repack_super()
-    generate_script()
-    compress_zip()
+    # repack_super()
+    # generate_script()
+    # compress_zip()
     os.chdir('..')
 
     # AdbUtils.mount_rw('/')

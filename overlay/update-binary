@@ -10,9 +10,9 @@ print() {
 waitForVolumeKey() {
 	print "- 按音量[+]选择"是"，按音量[-]选择"否""
 	keyInfo=true
-	while $keyInfo;do
+	while $keyInfo; do
 		keyInfo=$(getevent -qlc 1 | grep KEY_VOLUME)
-		if [ "$keyInfo" == "" ];then
+		if [ "$keyInfo" == "" ]; then
 			continue
 		else
 			isUpKey=$(echo $keyInfo | grep KEY_VOLUMEUP)
@@ -23,18 +23,17 @@ waitForVolumeKey() {
 }
 
 flash() {
-  print "- 正在刷入分区 $(echo $2 | cut -d '/' -f 6) "
+  print "- 正在刷入分区 $(echo $2 | cut -d '/' -f 6)"
   unzip -p "$zipFile" $1 > $2
 }
 
 flashZstd() {
-  print "- 正在刷入分区 $(echo $2 | cut -d '/' -f 6) "
+  print "- 正在刷入分区 $(echo $2 | cut -d '/' -f 6)"
   unzip -p "$zipFile" $1 | /tmp/META-INF/com/google/android/zstd -c -d > $2
 }
 
 remapSuper() {
-	if [ -e /dev/block/mapper/$1 ]
-	then
+	if [ -e /dev/block/mapper/$1 ]; then
 	    lptools unmap $1
 		lptools map $1
 	fi
@@ -42,9 +41,8 @@ remapSuper() {
 
 #####################################################################################
 
-if [ -d /tmp ]
-then
-    rm -rf /tmp
+if [ -d /tmp ]; then
+	rm -rf /tmp
 fi
 mkdir -p /tmp
 unzip "$zipFile" META-INF/com/google/android/zstd -d /tmp
@@ -65,9 +63,9 @@ print "    Android 版本：14"
 print " "
 print "=============================="
 
-if [ "$deviceA" != "$deviceB" ];then
+if [ "$deviceA" != "$deviceB" ]; then
 	print "- 设备代号与 ROM 代号不匹配，是否继续刷入？"
-	if waitForVolumeKey ;then
+	if waitForVolumeKey; then
 		print "- 继续刷入"
 	else
 		print "- 停止刷入"
@@ -75,18 +73,20 @@ if [ "$deviceA" != "$deviceB" ];then
 	fi
 fi
 
-print "- 正在校验 MD5"
-romName=$(basename $zipFile)
-hashA=$(md5sum $zipFile |head -c 10)
-hashB=$(echo $romName |cut -d '_' -f 4)
+if [ "$zipFile" != "/sideload/package.zip" ]; then
+	print "- 正在校验 MD5"
+	romName=$(basename $zipFile)
+	hashA=$(md5sum $zipFile |head -c 10)
+	hashB=$(echo $romName |cut -d '_' -f 4)
 
-if [ "$hashA" != "$hashB" ];then
-	print "- MD5 校验失败，可能是文件损坏或您修改过文件名，是否继续刷入？"
-	if waitForVolumeKey ;then
-		print "- 继续刷入"
-	else
-		print "- 停止刷入"
-		exit 1
+	if [ "$hashA" != "$hashB" ]; then
+		print "- MD5 校验失败，可能是文件损坏或您修改过文件名，是否继续刷入？"
+		if waitForVolumeKey; then
+			print "- 继续刷入"
+		else
+			print "- 停止刷入"
+			exit 1
+		fi
 	fi
 fi
 
@@ -168,8 +168,8 @@ print "- 清除缓存"
 rm -rf /data/dalvik-cache/arm/*
 rm -rf /data/dalvik-cache/arm64/*
 rm -rf /data/system/package_cache/*
+
 print " "
 print "- 已完成"
 print " "
-
 exit 0
