@@ -49,11 +49,40 @@ class AvbHeader(object):
                            self.rollback_index, self.flags, self.rollback_index_location, release_string_encoded)
 
 
+def round_to_multiple(number, size):
+    remainder = number % size
+    if remainder == 0:
+        return number
+    return number + size - remainder
+
+
+class AvbDescriptor(object):
+    _FORMAT_STRING = '!QQ'  # tag, num_bytes_following (descriptor header)
+    _SIZE = 16
+
+    def __init__(self, data):
+        if data:
+            (self.tag, num_bytes_following) = struct.unpack(self._FORMAT_STRING, data[0:self._SIZE])
+            self.data = None
+
+    def encode(self):
+        num_bytes_following = len(self.data)
+        nbf_with_padding = round_to_multiple(num_bytes_following, 8)
+        padding_size = nbf_with_padding - num_bytes_following
+        desc = struct.pack(self._FORMAT_STRING, self.tag, nbf_with_padding)
+        padding = struct.pack(str(padding_size) + 'x')
+        ret = desc + self.data + padding
+        return bytearray(ret)
+
+
 class VbMeta(object):
     def __init__(self, file: str):
         self.file = file
         self._image_size = os.path.getsize(file)
         self._image = open(file, 'r+b')
+
+        self._read_header()
+
         self._image.close()
 
     def _read_header(self):
@@ -68,4 +97,5 @@ class VbMeta(object):
 
 
 def patch(file: str):
-    VbMeta(file)
+    avb = VbMeta(file)
+    print(avb.header.magic)
