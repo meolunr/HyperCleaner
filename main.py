@@ -283,7 +283,7 @@ def compress_zip():
 
 
 def main():
-    unzip()
+    # unzip()
     os.chdir('out')
     vbmeta.patch('images/vbmeta.img')
     # dump_payload()
