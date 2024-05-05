@@ -62,11 +62,8 @@ class AvbDescriptor(object):
 
     def __init__(self, data):
         if data:
+            self.data = data
             (self.tag, num_bytes_following) = struct.unpack(self._FORMAT_STRING, data[0:self._SIZE])
-            self.data = None
-        self.data = data
-        (self.tag, num_bytes_following) = struct.unpack(self._FORMAT_STRING, data[0:self._SIZE])
-
 
     def encode(self):
         num_bytes_following = len(self.data)
@@ -76,6 +73,31 @@ class AvbDescriptor(object):
         padding = struct.pack(str(padding_size) + 'x')
         ret = desc + self.data + padding
         return bytearray(ret)
+
+
+class AvbPropertyDescriptor(AvbDescriptor):
+    _TAG = 0
+    _SIZE = 32
+    _FORMAT_STRING = ('!QQ'  # tag, num_bytes_following (descriptor header)
+                      'Q'  # key size (bytes)
+                      'Q')  # value size (bytes)
+
+    def __init__(self, data=None):
+        super().__init__(None)
+        (tag, num_bytes_following, key_size, value_size) = struct.unpack(self._FORMAT_STRING, data[0:self._SIZE])
+        key_offset = self._SIZE
+        value_offset = key_offset + key_size + 1
+        self.key = data[key_offset:(key_offset + key_size)].decode('utf-8')
+        self.value = data[value_offset:value_offset + value_size]
+
+    def encode(self):
+        key_encoded = self.key.encode('utf-8')
+        num_bytes_following = (self._SIZE + len(key_encoded) + len(self.value) + 2 - 16)
+        nbf_with_padding = round_to_multiple(num_bytes_following, 8)
+        padding_size = nbf_with_padding - num_bytes_following
+        desc = struct.pack(self._FORMAT_STRING, self._TAG, nbf_with_padding, len(key_encoded), len(self.value))
+        return desc + key_encoded + b'\0' + self.value + b'\0' + padding_size * b'\0'
+
 
 
 class VbMeta(object):
