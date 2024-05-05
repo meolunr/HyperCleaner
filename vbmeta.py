@@ -64,6 +64,9 @@ class AvbDescriptor(object):
         if data:
             (self.tag, num_bytes_following) = struct.unpack(self._FORMAT_STRING, data[0:self._SIZE])
             self.data = None
+        self.data = data
+        (self.tag, num_bytes_following) = struct.unpack(self._FORMAT_STRING, data[0:self._SIZE])
+
 
     def encode(self):
         num_bytes_following = len(self.data)
