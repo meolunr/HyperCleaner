@@ -104,14 +104,11 @@ class VbMeta(object):
     def __init__(self, file: str):
         self.file = file
         self._image_size = os.path.getsize(file)
-        self._image = open(file, 'r+b')
-
-        self._read_header()
-        aux_block_offset = AvbHeader.SIZE + self.header.authentication_data_block_size
-        desc_start_offset = aux_block_offset + self.header.descriptors_offset
-        self._read_descriptors(desc_start_offset, self.header.descriptors_size)
-
-        self._image.close()
+        with open(file, 'rb') as self._image:
+            self._read_header()
+            aux_block_offset = AvbHeader.SIZE + self.header.authentication_data_block_size
+            desc_start_offset = aux_block_offset + self.header.descriptors_offset
+            self._read_descriptors(desc_start_offset, self.header.descriptors_size)
 
     def _read_header(self):
         data = self._image.read(AvbHeader.SIZE)
@@ -133,7 +130,24 @@ class VbMeta(object):
             desc_offset += 16 + nb_following
 
     def encode(self):
-        pass
+        aux_data_blob = bytearray()
+        for desc in self.descriptors:
+            aux_data_blob.extend(desc.encode())
+        self.header.auxiliary_data_block_size = round_to_multiple(len(aux_data_blob), 64)
+        self.header.descriptors_size = len(aux_data_blob)
+        padding_bytes = self.header.auxiliary_data_block_size - len(aux_data_blob)
+        aux_data_blob.extend(b'\0' * padding_bytes)
+
+        vbmeta_blob = bytearray()
+        vbmeta_blob.extend(self.header.encode())
+        vbmeta_blob.extend(aux_data_blob)
+
+        vbmeta_size = len(vbmeta_blob)
+        padded_size = round_to_multiple(vbmeta_size, self._image_size)
+        padding_bytes = padded_size - vbmeta_size
+        vbmeta_blob.extend(b'\0' * padding_bytes)
+
+        return vbmeta_blob
 
 
 def patch(file: str):
