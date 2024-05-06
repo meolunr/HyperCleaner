@@ -106,7 +106,6 @@ class AvbPropertyDescriptor(AvbDescriptor):
         return desc + key_encoded + b'\0' + self.value + b'\0' + padding_size * b'\0'
 
 
-
 class VbMeta(object):
     def __init__(self, file: str):
         self.file = file
@@ -168,10 +167,8 @@ class VbMeta(object):
         return vbmeta_blob
 
 
-def patch(file: str):
-    avb = VbMeta(file)
-    print(avb.header.magic)
-    avb_vbmeta = VbMeta(file)
+def patch(vbmeta_file: str, boot_file: str):
+    avb_vbmeta = VbMeta(vbmeta_file)
 
     # Remove the verification data for vbmeta
     avb_vbmeta.header.authentication_data_block_size = 0
@@ -192,6 +189,19 @@ def patch(file: str):
     # Disable verity and verification
     avb_vbmeta.header.flags = AvbHeader.FLAG_DISABLE_VERITY | AvbHeader.FLAG_DISABLE_VERIFICATION
 
+    # Copy avb property descriptors from boot.img
+    if os.path.basename(vbmeta_file) == 'vbmeta.img':
+        for desc in VbMeta(boot_file).descriptors:
+            if not isinstance(desc, AvbPropertyDescriptor):
+                continue
+            match desc.key:
+                case 'com.android.build.boot.os_version':
+                    avb_vbmeta.descriptors.insert(0, desc)
+                case 'com.android.build.boot.fingerprint':
+                    avb_vbmeta.descriptors.insert(1, desc)
+                case 'com.android.build.boot.security_patch':
+                    avb_vbmeta.descriptors.insert(2, desc)
+
     tmp_list = list(avb_vbmeta.descriptors)
     tmp_set = set()
     for desc in tmp_list:
@@ -205,3 +215,5 @@ def patch(file: str):
             else:
                 tmp_set.add(desc.key)
 
+    with open('images/vbmeta_new1.img', 'wb') as f:
+        f.write(avb_vbmeta.encode())
