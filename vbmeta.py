@@ -76,7 +76,7 @@ class AvbDescriptor(object):
 
 
 class AvbPropertyDescriptor(AvbDescriptor):
-    _TAG = 0
+    TAG = 0
     _SIZE = 32
     _FORMAT_STRING = ('!QQ'  # tag, num_bytes_following (descriptor header)
                       'Q'  # key size (bytes)
@@ -95,7 +95,7 @@ class AvbPropertyDescriptor(AvbDescriptor):
         num_bytes_following = (self._SIZE + len(key_encoded) + len(self.value) + 2 - 16)
         nbf_with_padding = round_to_multiple(num_bytes_following, 8)
         padding_size = nbf_with_padding - num_bytes_following
-        desc = struct.pack(self._FORMAT_STRING, self._TAG, nbf_with_padding, len(key_encoded), len(self.value))
+        desc = struct.pack(self._FORMAT_STRING, self.TAG, nbf_with_padding, len(key_encoded), len(self.value))
         return desc + key_encoded + b'\0' + self.value + b'\0' + padding_size * b'\0'
 
 
@@ -107,6 +107,9 @@ class VbMeta(object):
         self._image = open(file, 'r+b')
 
         self._read_header()
+        aux_block_offset = AvbHeader.SIZE + self.header.authentication_data_block_size
+        desc_start_offset = aux_block_offset + self.header.descriptors_offset
+        self._read_descriptors(desc_start_offset, self.header.descriptors_size)
 
         self._image.close()
 
@@ -115,7 +118,19 @@ class VbMeta(object):
         self.header = AvbHeader(data)
 
     def _read_descriptors(self, offset, size):
-        pass
+        self._image.seek(offset)
+        data = self._image.read(size)
+
+        self.descriptors = []
+        desc_offset = 0
+        while desc_offset < len(data):
+            tag, nb_following = struct.unpack('!2Q', data[desc_offset:desc_offset + 16])
+            if tag == AvbPropertyDescriptor.TAG:
+                clazz = AvbPropertyDescriptor
+            else:
+                clazz = AvbDescriptor
+            self.descriptors.append(clazz(data[desc_offset:desc_offset + 16 + nb_following]))
+            desc_offset += 16 + nb_following
 
     def encode(self):
         pass
