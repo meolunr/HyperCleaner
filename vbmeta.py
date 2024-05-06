@@ -62,8 +62,11 @@ class AvbDescriptor(object):
 
     def __init__(self, data):
         if data:
-            self.data = data
             (self.tag, num_bytes_following) = struct.unpack(self._FORMAT_STRING, data[0:self._SIZE])
+            self.data = data[self._SIZE:self._SIZE + num_bytes_following]
+        else:
+            self.tag = None
+            self.data = None
 
     def encode(self):
         num_bytes_following = len(self.data)
@@ -84,11 +87,15 @@ class AvbPropertyDescriptor(AvbDescriptor):
 
     def __init__(self, data=None):
         super().__init__(None)
-        (tag, num_bytes_following, key_size, value_size) = struct.unpack(self._FORMAT_STRING, data[0:self._SIZE])
-        key_offset = self._SIZE
-        value_offset = key_offset + key_size + 1
-        self.key = data[key_offset:(key_offset + key_size)].decode('utf-8')
-        self.value = data[value_offset:value_offset + value_size]
+        if data:
+            (tag, num_bytes_following, key_size, value_size) = struct.unpack(self._FORMAT_STRING, data[0:self._SIZE])
+            key_offset = self._SIZE
+            value_offset = key_offset + key_size + 1
+            self.key = data[key_offset:(key_offset + key_size)].decode('utf-8')
+            self.value = data[value_offset:value_offset + value_size]
+        else:
+            self.key = ''
+            self.value = b''
 
     def encode(self):
         key_encoded = self.key.encode('utf-8')
