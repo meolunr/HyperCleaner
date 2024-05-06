@@ -112,18 +112,26 @@ class VbMeta(object):
         self.file = file
         self._image_size = os.path.getsize(file)
         with open(file, 'rb') as self._image:
-            self._read_header()
-            aux_block_offset = AvbHeader.SIZE + self.header.authentication_data_block_size
-            desc_start_offset = aux_block_offset + self.header.descriptors_offset
-            self._read_descriptors(desc_start_offset, self.header.descriptors_size)
+            vbmeta_offset = 0
+            # Check avb footer
+            self._image.seek(-64, os.SEEK_END)
+            if self._image.read(4) == b'AVBf':
+                self._image.seek(16, os.SEEK_CUR)
+                vbmeta_offset = int.from_bytes(self._image.read(8))
 
-    def _read_header(self):
+            self._read_header(vbmeta_offset)
+            aux_block_offset = vbmeta_offset + AvbHeader.SIZE + self.header.authentication_data_block_size
+            desc_start_offset = aux_block_offset + self.header.descriptors_offset
+            self._read_descriptors(desc_start_offset)
+
+    def _read_header(self, offset):
+        self._image.seek(offset)
         data = self._image.read(AvbHeader.SIZE)
         self.header = AvbHeader(data)
 
-    def _read_descriptors(self, offset, size):
+    def _read_descriptors(self, offset):
         self._image.seek(offset)
-        data = self._image.read(size)
+        data = self._image.read(self.header.descriptors_size)
 
         self.descriptors = []
         desc_offset = 0
