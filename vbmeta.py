@@ -133,15 +133,18 @@ class VbMeta(object):
         aux_data_blob = bytearray()
         for desc in self.descriptors:
             aux_data_blob.extend(desc.encode())
+
         self.header.auxiliary_data_block_size = round_to_multiple(len(aux_data_blob), 64)
         self.header.descriptors_size = len(aux_data_blob)
+        self.header.public_key_offset = self.header.descriptors_size
+        self.header.public_key_metadata_offset = self.header.public_key_offset + self.header.public_key_size
+
         padding_bytes = self.header.auxiliary_data_block_size - len(aux_data_blob)
         aux_data_blob.extend(b'\0' * padding_bytes)
 
         vbmeta_blob = bytearray()
         vbmeta_blob.extend(self.header.encode())
         vbmeta_blob.extend(aux_data_blob)
-
         vbmeta_size = len(vbmeta_blob)
         padded_size = round_to_multiple(vbmeta_size, self._image_size)
         padding_bytes = padded_size - vbmeta_size
@@ -153,3 +156,23 @@ class VbMeta(object):
 def patch(file: str):
     avb = VbMeta(file)
     print(avb.header.magic)
+    avb_vbmeta = VbMeta(file)
+
+    # Remove the verification data for vbmeta
+    avb_vbmeta.header.authentication_data_block_size = 0
+    avb_vbmeta.header.algorithm_type = 0
+
+    # Remove the verification data for header and auxiliary
+    avb_vbmeta.header.hash_size = 0
+    avb_vbmeta.header.signature_offset = 0
+    avb_vbmeta.header.signature_size = 0
+
+    # Remove public key
+    avb_vbmeta.header.public_key_size = 0
+    avb_vbmeta.header.public_key_metadata_size = 0
+
+    # Allow rollback
+    avb_vbmeta.header.rollback_index = 0
+
+    # Disable verity and verification
+    avb_vbmeta.header.flags = AvbHeader.FLAG_DISABLE_VERITY | AvbHeader.FLAG_DISABLE_VERIFICATION
