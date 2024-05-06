@@ -183,3 +183,17 @@ def patch(file: str):
 
     # Disable verity and verification
     avb_vbmeta.header.flags = AvbHeader.FLAG_DISABLE_VERITY | AvbHeader.FLAG_DISABLE_VERIFICATION
+
+    tmp_list = list(avb_vbmeta.descriptors)
+    tmp_set = set()
+    for desc in tmp_list:
+        # Remove chain, hash and hashtree descriptors
+        if getattr(desc, 'tag', -1) in (1, 2, 4):
+            avb_vbmeta.descriptors.remove(desc)
+        elif isinstance(desc, AvbPropertyDescriptor):
+            # Remove duplicate property descriptors
+            if desc.key in tmp_set:
+                avb_vbmeta.descriptors.remove(desc)
+            else:
+                tmp_set.add(desc.key)
+
