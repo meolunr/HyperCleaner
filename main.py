@@ -7,7 +7,6 @@ import sys
 import zipfile
 
 import imgfile
-import vbmeta
 from build import ApkFile
 from build.method_specifier import MethodSpecifier
 from util import AdbUtils
@@ -183,21 +182,6 @@ def unpack_img():
             os.system(f'{extract_erofs} -x -i {file}')
 
 
-def patch_vbmeta(file):
-    log(f'修补 vbmeta: {file}')
-    avb_magic = b'AVB0'
-    flags_offset = 0x7b
-    flags_to_set = b'\x03'
-
-    with open(file, 'rb+') as f:
-        buf = f.read(len(avb_magic))
-        if buf == avb_magic:
-            f.seek(flags_offset)
-            f.write(flags_to_set)
-        else:
-            print('无法修改，非验证引导文件')
-
-
 def disable_avb_and_dm_verity(file: str):
     log(f'禁用 AVB 验证引导和 Data 加密: {file}')
     with open(file, 'r+') as f:
@@ -285,7 +269,6 @@ def compress_zip():
 def main():
     # unzip()
     os.chdir('out')
-    vbmeta.patch('images/vbmeta.img')
     # dump_payload()
 
     # recovery_img = 'images/recovery.img'
@@ -295,14 +278,16 @@ def main():
     # unpack_img()
 
     # for img in glob('vbmeta*.img', root_dir='images'):
-    #     patch_vbmeta(os.path.join('images', img))
+    #     file = os.path.join('images', img)
+    #     log(f'修补 vbmeta: {file}')
+    #     vbmeta.patch(file, 'images/boot.img')
 
     # for file in glob('**/etc/fstab.*', recursive=True):
     #     disable_avb_and_dm_verity(file)
 
     # appmodifier.run()
     # repack_img()
-    # repack_super()
+    repack_super()
     # generate_script()
     # compress_zip()
     os.chdir('..')

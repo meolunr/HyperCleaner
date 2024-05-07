@@ -168,26 +168,26 @@ class VbMeta(object):
 
 
 def patch(vbmeta_file: str, boot_file: str):
-    avb_vbmeta = VbMeta(vbmeta_file)
+    avb = VbMeta(vbmeta_file)
 
     # Remove the verification data for vbmeta
-    avb_vbmeta.header.authentication_data_block_size = 0
-    avb_vbmeta.header.algorithm_type = 0
+    avb.header.authentication_data_block_size = 0
+    avb.header.algorithm_type = 0
 
     # Remove the verification data for header and auxiliary
-    avb_vbmeta.header.hash_size = 0
-    avb_vbmeta.header.signature_offset = 0
-    avb_vbmeta.header.signature_size = 0
+    avb.header.hash_size = 0
+    avb.header.signature_offset = 0
+    avb.header.signature_size = 0
 
     # Remove public key
-    avb_vbmeta.header.public_key_size = 0
-    avb_vbmeta.header.public_key_metadata_size = 0
+    avb.header.public_key_size = 0
+    avb.header.public_key_metadata_size = 0
 
     # Allow rollback
-    avb_vbmeta.header.rollback_index = 0
+    avb.header.rollback_index = 0
 
     # Disable verity and verification
-    avb_vbmeta.header.flags = AvbHeader.FLAG_DISABLE_VERITY | AvbHeader.FLAG_DISABLE_VERIFICATION
+    avb.header.flags = AvbHeader.FLAG_DISABLE_VERITY | AvbHeader.FLAG_DISABLE_VERIFICATION
 
     # Copy avb property descriptors from boot.img
     if os.path.basename(vbmeta_file) == 'vbmeta.img':
@@ -196,24 +196,23 @@ def patch(vbmeta_file: str, boot_file: str):
                 continue
             match desc.key:
                 case 'com.android.build.boot.os_version':
-                    avb_vbmeta.descriptors.insert(0, desc)
+                    avb.descriptors.insert(0, desc)
                 case 'com.android.build.boot.fingerprint':
-                    avb_vbmeta.descriptors.insert(1, desc)
+                    avb.descriptors.insert(1, desc)
                 case 'com.android.build.boot.security_patch':
-                    avb_vbmeta.descriptors.insert(2, desc)
+                    avb.descriptors.insert(2, desc)
 
-    tmp_list = list(avb_vbmeta.descriptors)
-    tmp_set = set()
-    for desc in tmp_list:
+    tmp = set()
+    for desc in list(avb.descriptors):
         # Remove chain, hash and hashtree descriptors
         if getattr(desc, 'tag', -1) in (1, 2, 4):
-            avb_vbmeta.descriptors.remove(desc)
+            avb.descriptors.remove(desc)
         elif isinstance(desc, AvbPropertyDescriptor):
             # Remove duplicate property descriptors
-            if desc.key in tmp_set:
-                avb_vbmeta.descriptors.remove(desc)
+            if desc.key in tmp:
+                avb.descriptors.remove(desc)
             else:
-                tmp_set.add(desc.key)
+                tmp.add(desc.key)
 
-    with open('images/vbmeta_new1.img', 'wb') as f:
-        f.write(avb_vbmeta.encode())
+    with open(vbmeta_file, 'wb') as f:
+        f.write(avb.encode())
