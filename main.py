@@ -6,20 +6,23 @@ import shutil
 import sys
 import zipfile
 from datetime import datetime
+from glob import glob
 
+import config
+import customizer
 import imgfile
+import vbmeta
 from build import ApkFile
 from build.method_specifier import MethodSpecifier
 from util import AdbUtils
 
 BIN_DIR = os.path.join(sys.path[0], 'bin')
 OVERLAY_DIR = os.path.join(sys.path[0], 'overlay')
-UNPACK_IMG = ('mi_ext', 'odm', 'product', 'system', 'system_dlkm', 'system_ext', 'vendor', 'vendor_dlkm')
 
 
 def log(string: str):
-    now = datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')
-    print(f'\n{now} {string}')
+    now = datetime.now().strftime('[%m-%d %H:%M:%S]')
+    print(f'{now} {string}')
 
 
 def process_in_tmp(func):
@@ -175,70 +178,86 @@ def dump_payload():
         exit()
 
 
+def remove_official_recovery():
+    recovery_img = 'images/recovery.img'
+    if os.path.exists(recovery_img):
+        log('去除官方 Recovery')
+        os.remove(recovery_img)
+
+
 def unpack_img():
     extract_erofs = os.path.join(BIN_DIR, 'extract.erofs.exe')
-    for img in os.listdir('images'):
+    for partition in config.UNPACK_PARTITIONS:
+        img = f'{partition}.img'
         file = os.path.join('images', img)
         if imgfile.file_system(file) == imgfile.FS_TYPE_EROFS:
             log(f'提取分区文件: {img}')
             os.system(f'{extract_erofs} -x -i {file}')
 
 
-def disable_avb_and_dm_verity(file: str):
-    log(f'禁用 AVB 验证引导和 Data 加密: {file}')
-    with open(file, 'r+') as f:
-        lines = f.readlines()
-        for i, line in enumerate(lines):
-            line = re.sub(',avb(?:=.+?,|,)', ',', line)
-            line = re.sub(',avb_keys=.+avbpubkey', '', line)
+def patch_vbmeta():
+    for img in glob('vbmeta*.img', root_dir='images'):
+        log(f'修补 vbmeta: {img}')
+        vbmeta.patch(os.path.join('images', img), 'images/boot.img')
 
-            line = re.sub(',fileencryption=.+?,', ',', line)
-            line = re.sub(',metadata_encryption=.+?,', ',', line)
-            line = re.sub(',keydirectory=.+?,', ',', line)
-            lines[i] = line
-        f.seek(0)
-        f.truncate()
-        f.writelines(lines)
+
+def disable_avb_and_dm_verity():
+    for file in glob('**/etc/fstab.*', recursive=True):
+        log(f'禁用 AVB 验证引导和 Data 加密: {file}')
+        with open(file, 'r+') as f:
+            lines = f.readlines()
+            for i, line in enumerate(lines):
+                # Remove avb
+                line = re.sub(',avb(?:=.+?,|,)', ',', line)
+                line = re.sub(',avb_keys=.+avbpubkey', '', line)
+                # Remove forced data encryption
+                line = re.sub(',fileencryption=.+?,', ',', line)
+                line = re.sub(',metadata_encryption=.+?,', ',', line)
+                line = re.sub(',keydirectory=.+?,', ',', line)
+                lines[i] = line
+            f.seek(0)
+            f.truncate()
+            f.writelines(lines)
 
 
 def repack_img():
     mkfs_erofs = os.path.join(BIN_DIR, 'mkfs.erofs.exe')
-    for img in UNPACK_IMG:
-        log(f'打包分区文件: {img}')
-        fs_config = f'config/{img}_fs_config'
-        contexts = f'config/{img}_file_contexts'
-        os.system(f'{mkfs_erofs} -zlz4hc,1 -T 1230768000 --mount-point /{img} --fs-config-file {fs_config} --file-contexts {contexts} images/{img}.img {img}')
+    for partition in config.UNPACK_PARTITIONS:
+        log(f'打包分区文件: {partition}')
+        fs_config = f'config/{partition}_fs_config'
+        contexts = f'config/{partition}_file_contexts'
+        os.system(f'{mkfs_erofs} -zlz4hc,1 -T 1230768000 --mount-point /{partition} --fs-config-file {fs_config} --file-contexts {contexts} images/{partition}.img {partition}')
 
 
 def repack_super():
     log('打包 super.img')
-    super_size = 9126805504
     output = io.StringIO()
     output.write(os.path.join(BIN_DIR, 'lpmake.exe '))
     output.write('--metadata-size 65536 ')
     output.write('--super-name super ')
     output.write('--metadata-slots 3 ')
     output.write('--virtual-ab ')
-    output.write(f'--device super:{super_size} ')
-    output.write(f'--group qti_dynamic_partitions_a:{super_size} ')
-    output.write(f'--group qti_dynamic_partitions_b:{super_size} ')
+    output.write(f'--device super:{config.SUPER_SIZE} ')
+    output.write(f'--group qti_dynamic_partitions_a:{config.SUPER_SIZE} ')
+    output.write(f'--group qti_dynamic_partitions_b:{config.SUPER_SIZE} ')
 
-    for img in UNPACK_IMG:
-        img_path = f'images/{img}.img'
-        size = os.path.getsize(img_path)
-        output.write(f'--partition {img}_a:readonly:{size}:qti_dynamic_partitions_a ')
-        output.write(f'--image {img}_a={img_path} ')
-        output.write(f'--partition {img}_b:none:0:qti_dynamic_partitions_b ')
+    for partition in config.SUPER_PARTITIONS:
+        img = f'images/{partition}.img'
+        size = os.path.getsize(img)
+        log(f'动态分区: {partition}, 大小: {size} 字节')
+        output.write(f'--partition {partition}_a:readonly:{size}:qti_dynamic_partitions_a ')
+        output.write(f'--image {partition}_a={img} ')
+        output.write(f'--partition {partition}_b:none:0:qti_dynamic_partitions_b ')
 
     output.write('--force-full-image ')
     output.write('--output images/super.img')
     cmd = output.getvalue()
     os.system(cmd)
 
-    for img in UNPACK_IMG:
-        img_path = f'images/{img}.img'
-        if os.path.exists(img_path):
-            os.remove(img_path)
+    for partition in config.SUPER_PARTITIONS:
+        img = f'images/{partition}.img'
+        if os.path.exists(img):
+            os.remove(img)
 
     log('使用 zstd 压缩 super.img')
     zstd = os.path.join(BIN_DIR, 'zstd.exe')
@@ -249,6 +268,7 @@ def generate_script():
     log('生成刷机脚本')
     with open(os.path.join(OVERLAY_DIR, 'update-binary'), encoding='utf-8') as fi:
         content = fi.read()
+        # ---> 变量替换待实现
         with open('update-binary', 'w', encoding='utf-8', newline='') as fo:
             fo.write(content)
 
@@ -256,8 +276,9 @@ def generate_script():
 def compress_zip():
     log('构建刷机包')
     with zipfile.ZipFile('tmp.zip', 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as f:
-        for i in os.listdir('images'):
-            f.write(os.path.join('images', i))
+        for img in os.listdir('images'):
+            f.write(os.path.join('images', img))
+        f.write(os.path.join('images', 'super.img.zst'))
         f.write('update-binary', 'META-INF/com/google/android/update-binary')
         f.write(os.path.join(OVERLAY_DIR, 'zstd'), 'META-INF/com/google/android/zstd')
 
@@ -265,34 +286,22 @@ def compress_zip():
     with open('tmp.zip', 'rb') as f:
         md5.update(f.read())
     file_hash = md5.hexdigest()[:10]
-    os.rename('tmp.zip', f'HC_shennong_OS1.0.39.0_{file_hash}_14.zip')
+    os.rename('tmp.zip', f'HC_{config.device}_{config.version}_{file_hash}_{config.sdk}.zip')
 
 
 def main():
-    # unzip()
+    unzip()
     os.chdir('out')
-    # dump_payload()
-
-    # recovery_img = 'images/recovery.img'
-    # if os.path.exists(recovery_img):
-    #     os.remove(recovery_img)
-    #
-    # unpack_img()
-
-    # for img in glob('vbmeta*.img', root_dir='images'):
-    #     file = os.path.join('images', img)
-    #     log(f'修补 vbmeta: {file}')
-    #     vbmeta.patch(file, 'images/boot.img')
-
-    # for file in glob('**/etc/fstab.*', recursive=True):
-    #     disable_avb_and_dm_verity(file)
-
-    # appmodifier.run()
-    # repack_img()
+    dump_payload()
+    remove_official_recovery()
+    unpack_img()
+    patch_vbmeta()
+    disable_avb_and_dm_verity()
+    customizer.run()
+    repack_img()
     repack_super()
-    # generate_script()
-    # compress_zip()
-    os.chdir('..')
+    generate_script()
+    compress_zip()
 
     # AdbUtils.mount_rw('/')
     # AdbUtils.mount_rw('/system_ext')
