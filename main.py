@@ -4,7 +4,6 @@ import os
 import re
 import shutil
 import sys
-import zipfile
 from datetime import datetime
 from glob import glob
 
@@ -164,8 +163,8 @@ def process_systemui():
 def unzip():
     test_file = 'miui_SHENNONG_OS1.0.39.0.UNBCNXM_c67d65e7de_14.0.zip'
     log(f'解压 {test_file}')
-    with zipfile.ZipFile(test_file) as f:
-        f.extract('payload.bin', 'out')
+    _7z = os.path.join(BIN_DIR, '7za.exe')
+    os.system(f'{_7z} e {test_file} payload.bin -oout')
 
 
 def dump_payload():
@@ -275,12 +274,18 @@ def generate_script():
 
 def compress_zip():
     log('构建刷机包')
-    with zipfile.ZipFile('tmp.zip', 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as f:
-        for img in os.listdir('images'):
-            f.write(os.path.join('images', img))
-        f.write(os.path.join('images', 'super.img.zst'))
-        f.write('update-binary', 'META-INF/com/google/android/update-binary')
-        f.write(os.path.join(OVERLAY_DIR, 'zstd'), 'META-INF/com/google/android/zstd')
+    archives = ['META-INF', 'images/super.img.zst']
+    for img in os.listdir('images'):
+        archives.append(os.path.join('images', img))
+
+    flash_script_dir = 'META-INF/com/google/android'
+    if not os.path.exists(flash_script_dir):
+        os.makedirs(flash_script_dir)
+    shutil.copy('update-binary', os.path.join(flash_script_dir, 'update-binary'))
+    shutil.copy(os.path.join(OVERLAY_DIR, 'zstd'), os.path.join(flash_script_dir, 'zstd'))
+
+    _7z = os.path.join(BIN_DIR, '7za.exe')
+    os.system(f'{_7z} a tmp.zip {' '.join(archives)}')
 
     md5 = hashlib.md5()
     with open('tmp.zip', 'rb') as f:
