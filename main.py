@@ -5,6 +5,7 @@ import re
 import shutil
 import sys
 import zipfile
+from datetime import datetime
 
 import imgfile
 from build import ApkFile
@@ -17,7 +18,8 @@ UNPACK_IMG = ('mi_ext', 'odm', 'product', 'system', 'system_dlkm', 'system_ext',
 
 
 def log(string: str):
-    print(f'\n>>> {string}')
+    now = datetime.now().strftime('[%Y-%m-%d %H:%M:%S]')
+    print(f'\n{now} {string}')
 
 
 def process_in_tmp(func):
