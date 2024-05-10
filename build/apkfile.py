@@ -27,9 +27,8 @@ class ApkFile(object):
                     return SmaliParser(assumed_path).smali_file
 
     def find_smali(self, *keywords: str):
+        # See: https://docs.python.org/3/using/windows.html#removing-the-max-path-limitation
         for file in glob(f'{self.output}/smali*/**/*.smali', recursive=True):
-            if not os.path.exists(file):
-                continue
             keyword_set = set(keywords)
             for line in open(file, 'r'):
                 for keyword in keywords:
