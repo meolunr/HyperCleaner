@@ -1,9 +1,11 @@
 import os
+import re
 import shutil
+from glob import glob
 
 from build.apkfile import ApkFile
 from build.smali import MethodSpecifier
-from timelog import log
+from log import log
 from util import AdbUtils
 
 
@@ -169,21 +171,26 @@ def remove_system_signature_check():
     apk = ApkFile('system/system/framework/services.jar')
     apk.decode()
 
-    smali = apk.open_smali('com/android/server/pm/ApexManager$ApexManagerImpl.smali')
+    apk = ApkFile('system/system/framework/services.jar')
     specifier = MethodSpecifier()
-    specifier.name = 'getSigningDetails'
-    old_segment = '''\
-    invoke-static {v0}, Landroid/util/apk/ApkSignatureVerifier;->getMinimumSignatureSchemeVersionForTargetSdk(I)I
+    specifier.keywords.append('getMinimumSignatureSchemeVersionForTargetSdk')
+    for smali in apk.find_smali('getMinimumSignatureSchemeVersionForTargetSdk'):
+        old_body = smali.find_method(specifier)
+        pattern = '''\
+    invoke-static {[v|p]\\d}, Landroid/util/apk/ApkSignatureVerifier;->getMinimumSignatureSchemeVersionForTargetSdk\\(I\\)I
 
-    move-result v0
+    move-result v(\\d)
 '''
-    new_segment = '''\
-    const/4 v0, 0x0
+        match = re.search(pattern, old_body)
+        new_segment = f'''\
+    const/4 v{match.group(1)}, 0x0
 '''
-    new_body = smali.find_method(specifier).replace(old_segment, new_segment)
-    smali.method_replace(specifier, new_body)
+        new_body = old_body.replace(match.group(0), new_segment)
+        smali.method_replace(old_body, new_body)
 
     apk.build()
+    for file in glob('system/system/framework/oat/arm64/services.*'):
+        os.remove(file)
 
 
 def run():
