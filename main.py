@@ -11,14 +11,10 @@ import config
 import customizer
 import imgfile
 import vbmeta
+from log import log
 
 BIN_DIR = os.path.join(sys.path[0], 'bin')
 OVERLAY_DIR = os.path.join(sys.path[0], 'overlay')
-
-
-def log(string: str):
-    now = datetime.now().strftime('[%m-%d %H:%M:%S]')
-    print(f'{now} {string}')
 
 
 def unzip():
@@ -156,32 +152,21 @@ def compress_zip():
 
 
 def main():
-    # start = datetime.now()
-    # unzip()
+    start = datetime.now()
+    unzip()
     os.chdir('out')
-    # dump_payload()
-    # remove_official_recovery()
-    # unpack_img()
-    # patch_vbmeta()
-    # disable_avb_and_dm_verity()
+    dump_payload()
+    remove_official_recovery()
+    unpack_img()
+    patch_vbmeta()
+    disable_avb_and_dm_verity()
     customizer.run()
-    # repack_img()
-    # repack_super()
-    # generate_script()
-    # compress_zip()
-    # result = datetime.now() - start
-    # log(f'已完成, 耗时 {int(result.seconds / 60)} 分 {result.seconds % 60} 秒')
-
-    # AdbUtils.mount_rw('/')
-    # AdbUtils.mount_rw('/system_ext')
-    # AdbUtils.mount_rw('/product')
-    # AdbUtils.mount_rw('/vendor')
-
-    # delete_rubbish()
-    # process_security_center()
-    # process_power_keeper()
-    # process_joyose()
-    # process_systemui()
+    repack_img()
+    repack_super()
+    generate_script()
+    compress_zip()
+    result = datetime.now() - start
+    log(f'已完成, 耗时 {int(result.seconds / 60)} 分 {result.seconds % 60} 秒')
 
 
 if __name__ == '__main__':
