@@ -8,7 +8,7 @@ class SmaliParser(object):
 
     def __init__(self, file: str):
         self.smali_file = SmaliFile(file)
-        with open(file, 'r') as file:
+        with open(file, 'r', encoding='utf-8') as file:
             self._parse_method(file.read())
 
     def _parse_method(self, content: str):

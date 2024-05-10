@@ -60,7 +60,7 @@ def patch_vbmeta():
 def disable_avb_and_dm_verity():
     for file in glob('**/etc/fstab.*', recursive=True):
         log(f'禁用 AVB 验证引导和 Data 加密: {file}')
-        with open(file, 'r+') as f:
+        with open(file, 'r+', encoding='utf-8', newline='') as f:
             lines = f.readlines()
             for i, line in enumerate(lines):
                 # Remove avb
@@ -122,7 +122,7 @@ def repack_super():
 
 def generate_script():
     log('生成刷机脚本')
-    with open(os.path.join(OVERLAY_DIR, 'update-binary'), encoding='utf-8') as fi:
+    with open(os.path.join(OVERLAY_DIR, 'update-binary'), 'r', encoding='utf-8') as fi:
         content = fi.read()
         # ---> 变量替换待实现
         with open('update-binary', 'w', encoding='utf-8', newline='') as fo:

@@ -52,7 +52,7 @@ class SmaliFile(object):
     def method_replace(self, old_method: str | MethodSpecifier, new_body: str):
         if type(old_method) is MethodSpecifier:
             old_method = self.find_method(old_method)
-        with open(self.file, 'r+') as file:
+        with open(self.file, 'r+', encoding='utf-8') as file:
             text = file.read().replace(old_method, new_body)
             file.seek(0)
             file.truncate()
