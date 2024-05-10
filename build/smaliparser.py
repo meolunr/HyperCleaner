@@ -1,17 +1,17 @@
 import re
 
-from .method_specifier import MethodSpecifier
-from .smali_file import SmaliFile
+from smali import MethodSpecifier
+from smali import SmaliFile
 
 
 class SmaliParser(object):
 
-    def __init__(self, path: str):
-        self.__smali_file = SmaliFile(path)
-        with open(path, mode='r') as file:
-            self.__parse_method(file.read())
+    def __init__(self, file: str):
+        self.smali_file = SmaliFile(file)
+        with open(file, 'r') as file:
+            self._parse_method(file.read())
 
-    def __parse_method(self, content: str):
+    def _parse_method(self, content: str):
         pattern = re.compile(r'((\.method.+?)\n.+?\.end method)', re.DOTALL)
         method_pattern = re.compile(r'\.method (public|protected|private)(?: static)? (\w+?)\((\S*?)\)(\S+?)')
 
@@ -28,7 +28,4 @@ class SmaliParser(object):
             specifier.parameters = method_defines[2]
             specifier.return_type = method_defines[3]
 
-            self.__smali_file.add_method(specifier, item[0])
-
-    def make(self):
-        return self.__smali_file
+            self.smali_file.add_method(specifier, item[0])

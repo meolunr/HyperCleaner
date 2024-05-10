@@ -1,35 +1,35 @@
 import os
 from glob import glob
 
-from util2 import apktool
+from smaliparser import SmaliParser
+from util import apktool
 
 
 class ApkFile(object):
     def __init__(self, file: str):
         self.file = file
+        self.output = f'{self.file}.out'
 
     def decode(self, no_res=True):
-        apktool.decode(self.file, f'{self.file}.out', no_res)
+        apktool.decode(self.file, self.output, no_res)
 
     def build(self, copy_original=True):
-        apktool.build(f'{self.file}.out', copy_original)
-        apktool.zipalign(f'{self.file}.out/dist/{os.path.basename(self.file)}', self.file)
+        apktool.build(self.output, copy_original)
+        apktool.zipalign(f'{self.output}/dist/{os.path.basename(self.file)}', self.file)
 
     def open_smali(self, file: str):
-        for dir_name in os.listdir(self._output):
+        for dir_name in os.listdir(self.output):
             if dir_name.startswith('smali'):
-                assumed_path = os.path.join(self._output, dir_name, file)
+                assumed_path = os.path.join(self.output, dir_name, file)
                 if os.path.exists(assumed_path):
-                    pass
-                    # return SmaliParser(assumed_path).make()
+                    return SmaliParser(assumed_path).smali_file
 
     def find_smali(self, *keywords: str):
-        for file in glob(f'{self.file}.out/smali*/**/*.smali', recursive=True):
+        for file in glob(f'{self.output}/smali*/**/*.smali', recursive=True):
             keyword_set = set(keywords)
-            for line in open(file, mode='r'):
+            for line in open(file, 'r'):
                 for keyword in keywords:
                     if keyword in line:
                         keyword_set.discard(keyword)
             if len(keyword_set) == 0:
-                pass
-                # return SmaliParser(file).make()
+                return SmaliParser(file).smali_file

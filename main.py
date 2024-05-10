@@ -156,21 +156,21 @@ def compress_zip():
 
 
 def main():
-    start = datetime.now()
-    unzip()
+    # start = datetime.now()
+    # unzip()
     os.chdir('out')
-    dump_payload()
-    remove_official_recovery()
-    unpack_img()
-    patch_vbmeta()
-    disable_avb_and_dm_verity()
+    # dump_payload()
+    # remove_official_recovery()
+    # unpack_img()
+    # patch_vbmeta()
+    # disable_avb_and_dm_verity()
     customizer.run()
-    repack_img()
-    repack_super()
-    generate_script()
-    compress_zip()
-    result = datetime.now() - start
-    log(f'已完成, 耗时 {int(result.seconds / 60)} 分 {result.seconds % 60} 秒')
+    # repack_img()
+    # repack_super()
+    # generate_script()
+    # compress_zip()
+    # result = datetime.now() - start
+    # log(f'已完成, 耗时 {int(result.seconds / 60)} 分 {result.seconds % 60} 秒')
 
     # AdbUtils.mount_rw('/')
     # AdbUtils.mount_rw('/system_ext')
