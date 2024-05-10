@@ -1,8 +1,9 @@
 import os
+import shutil
 from glob import glob
 
-from smaliparser import SmaliParser
 from util import apktool
+from .smaliparser import SmaliParser
 
 
 class ApkFile(object):
@@ -16,6 +17,7 @@ class ApkFile(object):
     def build(self, copy_original=True):
         apktool.build(self.output, copy_original)
         apktool.zipalign(f'{self.output}/dist/{os.path.basename(self.file)}', self.file)
+        shutil.rmtree(self.output)
 
     def open_smali(self, file: str):
         for dir_name in os.listdir(self.output):
@@ -26,6 +28,8 @@ class ApkFile(object):
 
     def find_smali(self, *keywords: str):
         for file in glob(f'{self.output}/smali*/**/*.smali', recursive=True):
+            if not os.path.exists(file):
+                continue
             keyword_set = set(keywords)
             for line in open(file, 'r'):
                 for keyword in keywords:

@@ -1,8 +1,9 @@
 import os
 import shutil
 
-from build import ApkFile
-from build.method_specifier import MethodSpecifier
+from build.apkfile import ApkFile
+from build.smali import MethodSpecifier
+from timelog import log
 from util import AdbUtils
 
 
@@ -163,6 +164,27 @@ def process_systemui():
     AdbUtils.push_as_root(path, '/system_ext/priv-app/MiuiSystemUI/')
 
 
+def remove_system_signature_check():
+    log('去除系统签名检查')
+    apk = ApkFile('system/system/framework/services.jar')
+    apk.decode()
+
+    smali = apk.open_smali('com/android/server/pm/ApexManager$ApexManagerImpl.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'getSigningDetails'
+    old_segment = '''\
+    invoke-static {v0}, Landroid/util/apk/ApkSignatureVerifier;->getMinimumSignatureSchemeVersionForTargetSdk(I)I
+
+    move-result v0
+'''
+    new_segment = '''\
+    const/4 v0, 0x0
+'''
+    new_body = smali.find_method(specifier).replace(old_segment, new_segment)
+    smali.method_replace(specifier, new_body)
+
+    apk.build()
+
+
 def run():
-    # rm_files()
-    print('Test appmodifier...')
+    remove_system_signature_check()

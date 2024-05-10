@@ -18,7 +18,7 @@ class MethodSpecifier(object):
 
 class SmaliFile(object):
     def __init__(self, file: str):
-        self._file = file
+        self.file = file
         self._methods: list[MethodSpecifier] = []
         self._method_body = {}
 
@@ -26,7 +26,7 @@ class SmaliFile(object):
         self._methods.append(specifier)
         self._method_body[specifier] = body
 
-    def find_method(self, specifier: MethodSpecifier):
+    def find_method(self, specifier: MethodSpecifier) -> str:
         conditions = [
             lambda x: True if specifier.name is None else x.name == specifier.name,
             lambda x: True if specifier.access is None else x.access == specifier.access,
@@ -39,7 +39,7 @@ class SmaliFile(object):
             results = list(filter(condition, results))
 
         if len(results) > 1 and len(specifier.keywords) == 0:
-            return
+            return ''
 
         def filter_keyword(item: MethodSpecifier):
             body = self._method_body[item]
@@ -49,9 +49,11 @@ class SmaliFile(object):
         if len(results) == 1:
             return self._method_body[results[0]]
 
-    def method_replace(self, old_method_body: str, new_method_body: str):
-        with open(self._file, 'r+') as file:
-            text = file.read().replace(old_method_body, new_method_body)
+    def method_replace(self, old_method: str | MethodSpecifier, new_body: str):
+        if type(old_method) is MethodSpecifier:
+            old_method = self.find_method(old_method)
+        with open(self.file, 'r+') as file:
+            text = file.read().replace(old_method, new_body)
             file.seek(0)
             file.truncate()
             file.write(text)
