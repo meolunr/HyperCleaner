@@ -31,10 +31,11 @@ class ApkFile(object):
         # See: https://docs.python.org/3/using/windows.html#removing-the-max-path-limitation
         for file in glob(f'{self.output}/smali*/**/*.smali', recursive=True):
             keyword_set = set(keywords)
-            for line in open(file, 'r', encoding='utf-8'):
-                for keyword in keywords:
-                    if keyword in line:
-                        keyword_set.discard(keyword)
+            with open(file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    for keyword in keywords:
+                        if keyword in line:
+                            keyword_set.discard(keyword)
             if len(keyword_set) == 0:
                 results.append(SmaliParser(file).smali_file)
         return results

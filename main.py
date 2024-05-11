@@ -76,6 +76,34 @@ def disable_avb_and_dm_verity():
             f.writelines(lines)
 
 
+def handle_pangu_overlay():
+    log('处理盘古架构')
+    if not os.path.exists('product/pangu'):
+        return
+
+    lines = []
+    with open('config/product_file_contexts', 'r', encoding='utf-8') as f:
+        for line in f:
+            if line.startswith('/product/pangu'):
+                splits = line.split(' ')
+                path = splits[0][14:]
+                if not os.path.exists(f'system{path}'):
+                    lines.append(f'/system{path} {splits[1]}')
+    with open('config/system_file_contexts', 'a', encoding='utf-8', newline='') as f:
+        f.writelines(lines)
+
+    lines.clear()
+    with open('config/product_fs_config', 'r', encoding='utf-8') as f:
+        for line in f:
+            if line.startswith('product/pangu'):
+                pos = line.index(' ')
+                path = line[:pos][13:]
+                if not os.path.exists(f'system{path}'):
+                    lines.append(f'system{path}{line[pos:]}')
+    with open('config/system_fs_config', 'a', encoding='utf-8', newline='') as f:
+        f.writelines(lines)
+
+
 def repack_img():
     mkfs_erofs = os.path.join(BIN_DIR, 'mkfs.erofs.exe')
     for partition in config.UNPACK_PARTITIONS:
@@ -161,6 +189,7 @@ def main():
     patch_vbmeta()
     disable_avb_and_dm_verity()
     customizer.run()
+    handle_pangu_overlay()
     repack_img()
     repack_super()
     generate_script()
