@@ -3,6 +3,7 @@ import io
 import os
 import re
 import shutil
+import string
 import sys
 from datetime import datetime
 from glob import glob
@@ -150,9 +151,26 @@ def repack_super():
 
 def generate_script():
     log('生成刷机脚本')
+    output = io.StringIO()
+    for img in os.listdir('images'):
+        if not img.endswith('.img'):
+            continue
+        partition = os.path.splitext(img)[0]
+        output.write(f'flash "images/{img}" "/dev/block/bootdevice/by-name/{partition}_a"\n')
+        output.write(f'flash "images/{img}" "/dev/block/bootdevice/by-name/{partition}_b"\n')
+    if os.path.exists('images/super.img.zst'):
+        output.write('flashZstd "images/super.img.zst" "/dev/block/bootdevice/by-name/super"\n\n')
+        for item in config.SUPER_PARTITIONS:
+            output.write(f'remapSuper {item}_a\n')
+
+    template_dict = {
+        'var_device': config.device,
+        'var_version': config.version,
+        'var_sdk': config.sdk,
+        'var_flash_img': output.getvalue()
+    }
     with open(os.path.join(OVERLAY_DIR, 'update-binary'), 'r', encoding='utf-8') as fi:
-        content = fi.read()
-        # ---> 变量替换待实现
+        content = string.Template(fi.read()).safe_substitute(template_dict)
         with open('update-binary', 'w', encoding='utf-8', newline='') as fo:
             fo.write(content)
 
@@ -188,8 +206,8 @@ def main():
     unpack_img()
     patch_vbmeta()
     disable_avb_and_dm_verity()
-    customizer.run()
     handle_pangu_overlay()
+    customizer.run()
     repack_img()
     repack_super()
     generate_script()
