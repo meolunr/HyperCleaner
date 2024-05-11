@@ -1,33 +1,13 @@
 import os
 import re
 import shutil
+import sys
 from glob import glob
 
 from build.apkfile import ApkFile
 from build.smali import MethodSpecifier
 from log import log
 from util import AdbUtils
-
-
-def rm_files():
-    def ignore_annotation(line: str):
-        annotation_index = line.find('#')
-        if annotation_index >= 0:
-            line = line[:annotation_index]
-        return line.strip()
-
-    model = AdbUtils.exec_with_result('getprop ro.product.name')[:-1]
-    print('>>> Delete rubbish files, device: %s' % model)
-
-    rubbish_file_list = 'rubbish-files-%s.txt' % model
-    if not os.path.isfile(rubbish_file_list):
-        rubbish_file_list = 'rubbish-files.txt'
-
-    with open(rubbish_file_list, encoding='utf-8') as file:
-        for rubbish in map(ignore_annotation, file.readlines()):
-            if len(rubbish) != 0:
-                print('Deleting %s' % rubbish)
-                AdbUtils.exec_as_root('rm -rf %s' % rubbish)
 
 
 def process_in_tmp(func):
@@ -193,5 +173,20 @@ def remove_system_signature_check():
         os.remove(file)
 
 
+def rm_files():
+    def ignore_comment(line: str):
+        annotation_index = line.find('#')
+        if annotation_index >= 0:
+            line = line[:annotation_index]
+        return line.strip()
+
+    with open(os.path.join(sys.path[0], 'remove-files.txt'), 'r', encoding='utf-8') as f:
+        for item in map(ignore_comment, f.readlines()):
+            if len(item) != 0:
+                log(f'删除文件: {item}')
+                os.remove(item)
+
+
 def run():
     remove_system_signature_check()
+    rm_files()
