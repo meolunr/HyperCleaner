@@ -14,3 +14,9 @@ def push(src: str, dst: str):
     os.system(f'adb push {src} {_DATA_TMP}')
     execute(f'cp -rf {tmp_file} {dst}')
     execute(f'rm -rf {tmp_file}')
+
+
+def install_test_module():
+    module_dir = '/data/adb/modules/hypercleaner'
+    execute(f'mkdir -p {module_dir}')
+    push(f'{OVERLAY_DIR}/module.prop', module_dir)
