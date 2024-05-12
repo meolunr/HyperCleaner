@@ -86,7 +86,6 @@ def global_maximum_fps(apk_file: ApkFile):
 @process_in_tmp
 def process_security_center():
     print('>>> Process SecurityCenter.apk')
-    AdbUtils.pull('/system/priv-app/SecurityCenter/SecurityCenter.apk')
     apk_file = ApkFile('SecurityCenter.apk')
     apk_file.decode()
 
@@ -95,13 +94,11 @@ def process_security_center():
     lock_100_score(apk_file)
 
     path = apk_file.build()
-    AdbUtils.push_as_root(path, '/system/priv-app/SecurityCenter/')
 
 
 @process_in_tmp
 def process_power_keeper():
     print('>>> Process PowerKeeper.apk')
-    AdbUtils.pull('/system/app/PowerKeeper/PowerKeeper.apk')
     apk_file = ApkFile('PowerKeeper.apk')
     apk_file.decode()
 
@@ -109,14 +106,11 @@ def process_power_keeper():
     global_maximum_fps(apk_file)
 
     path = apk_file.build()
-    AdbUtils.push_as_root(path, '/system/app/PowerKeeper/')
-    AdbUtils.exec_as_root('rm -rf /data/vendor/thermal/config')
 
 
 @process_in_tmp
 def process_joyose():
     print('>>> Process Joyose.apk')
-    AdbUtils.pull('/system/app/Joyose/Joyose.apk')
     apk_file = ApkFile('Joyose.apk')
     apk_file.decode()
 
@@ -126,14 +120,11 @@ def process_joyose():
     smali_file.method_nop(specifier)
 
     path = apk_file.build()
-    AdbUtils.push_as_root(path, '/system/app/Joyose/')
-    AdbUtils.exec_as_root('pm clear com.xiaomi.joyose')
 
 
 @process_in_tmp
 def process_systemui():
     print('>>> Process MiuiSystemUI.apk')
-    AdbUtils.pull('/system_ext/priv-app/MiuiSystemUI/MiuiSystemUI.apk')
     apk_file = ApkFile('MiuiSystemUI.apk')
     apk_file.decode()
 
@@ -143,7 +134,6 @@ def process_systemui():
     smali_file.method_return0(specifier)
 
     path = apk_file.build()
-    AdbUtils.push_as_root(path, '/system_ext/priv-app/MiuiSystemUI/')
 
 
 def remove_system_signature_check():
