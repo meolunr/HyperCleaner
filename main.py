@@ -9,22 +9,22 @@ from glob import glob
 
 import config
 import customizer
-import imgfile
 import vbmeta
 from hcglobal import BIN_DIR, OVERLAY_DIR, log
+from util import imgfile
 
 
 def unzip():
     test_file = 'miui_SHENNONG_OS1.0.39.0.UNBCNXM_c67d65e7de_14.0.zip'
     log(f'解压 {test_file}')
-    _7z = os.path.join(BIN_DIR, '7za.exe')
+    _7z = f'{BIN_DIR}/7za.exe'
     os.system(f'{_7z} e {test_file} payload.bin -oout')
 
 
 def dump_payload():
     if os.path.exists('payload.bin'):
         log('解包 payload.bin')
-        payload = os.path.join(BIN_DIR, 'payload.exe')
+        payload = f'{BIN_DIR}/payload.exe'
         os.system(f'{payload} -o images payload.bin')
     else:
         log('未找到 payload.bin 文件')
@@ -39,10 +39,10 @@ def remove_official_recovery():
 
 
 def unpack_img():
-    extract_erofs = os.path.join(BIN_DIR, 'extract.erofs.exe')
+    extract_erofs = f'{BIN_DIR}/extract.erofs.exe'
     for partition in config.UNPACK_PARTITIONS:
         img = f'{partition}.img'
-        file = os.path.join('images', img)
+        file = f'images/{img}'
         if imgfile.file_system(file) == imgfile.FS_TYPE_EROFS:
             log(f'提取分区文件: {img}')
             os.system(f'{extract_erofs} -x -i {file}')
@@ -51,7 +51,7 @@ def unpack_img():
 def patch_vbmeta():
     for img in glob('vbmeta*.img', root_dir='images'):
         log(f'修补 vbmeta: {img}')
-        vbmeta.patch(os.path.join('images', img), 'images/boot.img')
+        vbmeta.patch(f'images/{img}', 'images/boot.img')
 
 
 def disable_avb_and_dm_verity():
@@ -102,7 +102,7 @@ def handle_pangu_overlay():
 
 
 def repack_img():
-    mkfs_erofs = os.path.join(BIN_DIR, 'mkfs.erofs.exe')
+    mkfs_erofs = f'{BIN_DIR}/mkfs.erofs.exe'
     for partition in config.UNPACK_PARTITIONS:
         log(f'打包分区文件: {partition}')
         fs_config = f'config/{partition}_fs_config'
@@ -113,7 +113,7 @@ def repack_img():
 def repack_super():
     log('打包 super.img')
     output = io.StringIO()
-    output.write(os.path.join(BIN_DIR, 'lpmake.exe '))
+    output.write(f'{BIN_DIR}/lpmake.exe ')
     output.write('--metadata-size 65536 ')
     output.write('--super-name super ')
     output.write('--metadata-slots 3 ')
@@ -141,7 +141,7 @@ def repack_super():
             os.remove(img)
 
     log('使用 zstd 压缩 super.img')
-    zstd = os.path.join(BIN_DIR, 'zstd.exe')
+    zstd = f'{BIN_DIR}/zstd.exe'
     os.system(f'{zstd} --rm images/super.img -o images/super.img.zst')
 
 
@@ -165,7 +165,7 @@ def generate_script():
         'var_sdk': config.sdk,
         'var_flash_img': output.getvalue()
     }
-    with open(os.path.join(OVERLAY_DIR, 'update-binary'), 'r', encoding='utf-8') as fi:
+    with open(f'{OVERLAY_DIR}/update-binary', 'r', encoding='utf-8') as fi:
         content = string.Template(fi.read()).safe_substitute(template_dict)
         with open('update-binary', 'w', encoding='utf-8', newline='') as fo:
             fo.write(content)
@@ -175,15 +175,15 @@ def compress_zip():
     log('构建刷机包')
     archives = ['META-INF', 'images/super.img.zst']
     for img in os.listdir('images'):
-        archives.append(os.path.join('images', img))
+        archives.append(f'images/{img}')
 
     flash_script_dir = 'META-INF/com/google/android'
     if not os.path.exists(flash_script_dir):
         os.makedirs(flash_script_dir)
-    shutil.move('update-binary', os.path.join(flash_script_dir, 'update-binary'))
-    shutil.copy(os.path.join(OVERLAY_DIR, 'zstd'), os.path.join(flash_script_dir, 'zstd'))
+    shutil.move('update-binary', f'{flash_script_dir}/update-binary')
+    shutil.copy(f'{OVERLAY_DIR}/zstd', f'{flash_script_dir}/zstd')
 
-    _7z = os.path.join(BIN_DIR, '7za.exe')
+    _7z = f'{BIN_DIR}/7za.exe'
     os.system(f'{_7z} a tmp.zip {' '.join(archives)}')
 
     md5 = hashlib.md5()

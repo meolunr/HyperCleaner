@@ -22,7 +22,7 @@ class ApkFile(object):
     def open_smali(self, file: str):
         for dir_name in os.listdir(self.output):
             if dir_name.startswith('smali'):
-                assumed_path = os.path.join(self.output, dir_name, file)
+                assumed_path = f'{self.output}/{dir_name}/{file}'
                 if os.path.exists(assumed_path):
                     return SmaliParser(assumed_path).smali_file
 

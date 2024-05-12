@@ -170,7 +170,7 @@ def rm_files():
             line = line[:annotation_index]
         return line.strip()
 
-    with open(os.path.join(sys.path[0], 'remove-files.txt'), 'r', encoding='utf-8') as f:
+    with open(f'{sys.path[0]}/remove-files.txt', 'r', encoding='utf-8') as f:
         for item in map(ignore_comment, f.readlines()):
             if len(item) != 0:
                 log(f'删除文件: {item}')
