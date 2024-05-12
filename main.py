@@ -4,7 +4,6 @@ import os
 import re
 import shutil
 import string
-import sys
 from datetime import datetime
 from glob import glob
 
@@ -12,10 +11,7 @@ import config
 import customizer
 import imgfile
 import vbmeta
-from log import log
-
-BIN_DIR = os.path.join(sys.path[0], 'bin')
-OVERLAY_DIR = os.path.join(sys.path[0], 'overlay')
+from hcglobal import BIN_DIR, OVERLAY_DIR, log
 
 
 def unzip():

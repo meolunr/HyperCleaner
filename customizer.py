@@ -6,7 +6,7 @@ from glob import glob
 
 from build.apkfile import ApkFile
 from build.smali import MethodSpecifier
-from log import log
+from hcglobal import log
 from util import AdbUtils
 
 
