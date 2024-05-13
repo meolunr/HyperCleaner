@@ -6,6 +6,7 @@ from glob import glob
 
 from build.apkfile import ApkFile
 from build.smali import MethodSpecifier
+from hcglobal import OVERLAY_DIR
 from hcglobal import log
 from util import AdbUtils
 
@@ -175,6 +176,11 @@ def rm_files():
             if len(item) != 0:
                 log(f'删除文件: {item}')
                 os.remove(item)
+    log('替换 BlankAnalytics')
+    analytics = 'product/app/AnalyticsCore/AnalyticsCore.apk'
+    if os.path.exists(analytics):
+        os.remove(analytics)
+        shutil.copy(f'{OVERLAY_DIR}/BlankAnalytics.apk', analytics)
 
 
 def run():
