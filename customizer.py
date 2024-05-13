@@ -8,7 +8,6 @@ from build.apkfile import ApkFile
 from build.smali import MethodSpecifier
 from hcglobal import OVERLAY_DIR
 from hcglobal import log
-from util import AdbUtils
 
 
 def process_in_tmp(func):
@@ -142,7 +141,6 @@ def remove_system_signature_check():
     apk = ApkFile('system/system/framework/services.jar')
     apk.decode()
 
-    apk = ApkFile('system/system/framework/services.jar')
     specifier = MethodSpecifier()
     specifier.keywords.append('getMinimumSignatureSchemeVersionForTargetSdk')
     for smali in apk.find_smali('getMinimumSignatureSchemeVersionForTargetSdk'):
@@ -173,13 +171,19 @@ def rm_files():
 
     with open(f'{sys.path[0]}/remove-files.txt', 'r', encoding='utf-8') as f:
         for item in map(ignore_comment, f.readlines()):
-            if len(item) != 0:
+            if len(item) == 0:
+                continue
+            if os.path.exists(item):
                 log(f'删除文件: {item}')
-                os.remove(item)
+                shutil.rmtree(item)
+            else:
+                log(f'文件不存在: {item}')
+
     log('替换 BlankAnalytics')
     analytics = 'product/app/AnalyticsCore/AnalyticsCore.apk'
     if os.path.exists(analytics):
         os.remove(analytics)
+        shutil.rmtree('product/app/AnalyticsCore/oat')
         shutil.copy(f'{OVERLAY_DIR}/BlankAnalytics.apk', analytics)
 
 
