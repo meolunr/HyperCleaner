@@ -22,7 +22,6 @@ system/system/priv-app/MusicFX
 system/system/priv-app/ONS
 system/system/priv-app/SharedStorageBackup
 system/system/priv-app/StatementService
-system/system/priv-app/SystemHelper  # ----------------------------------------------------
 system/system/priv-app/UserDictionaryProvider
 system_ext/app/datastatusnotification
 system_ext/app/DeviceInfo
@@ -76,11 +75,13 @@ product/priv-app/GooglePlayServicesUpdater
 product/priv-app/MiGameCenterSDKService
 product/priv-app/MIUIAICR
 product/priv-app/MIUIBrowser
+product/priv-app/MIUIContentExtension
 product/priv-app/MIUIMirror
 product/priv-app/MIUIPersonalAssistantPhoneMIUI15
 product/priv-app/MIUIQuickSearchBox
 product/priv-app/RegService
 product/priv-app/SettingsIntelligence
+product/pangu/system/priv-app/SystemHelper
 product/data-app
 # 下载管理
 # 小米画报
