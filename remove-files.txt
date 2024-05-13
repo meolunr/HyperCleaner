@@ -23,7 +23,6 @@ system/system/priv-app/ONS
 system/system/priv-app/SharedStorageBackup
 system/system/priv-app/StatementService
 system/system/priv-app/UserDictionaryProvider
-system_ext/app/datastatusnotification
 system_ext/app/DeviceInfo
 system_ext/app/DeviceStatisticsService
 system_ext/app/MiSightService

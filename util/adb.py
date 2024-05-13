@@ -22,6 +22,12 @@ def push_test_module():
     push(f'{OVERLAY_DIR}/HCTestModule.zip', '/sdcard')
 
 
+def push_to_test_module(file: str):
+    dir_name = f'{_MODULE_DIR}/{os.path.dirname(file)}'
+    execute(f'mkdir -p {dir_name}')
+    push(file, dir_name)
+
+
 def rm(file: str):
     dir_name = os.path.dirname(file)
     execute(f'mkdir -p {_MODULE_DIR}{dir_name}')
