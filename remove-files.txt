@@ -1,91 +1,101 @@
-/system/app/AiAsstVision
-# /system/app/AnalyticsCore
-/system/app/BasicDreams
-/system/app/BookmarkProvider
-/system/app/CarWith
-/system/app/CarrierDefaultApp
-/system/app/CatchLog
-/system/app/CatcherPatch
-/system/app/com.xiaomi.macro
-/system/app/digitalkey
-/system/app/GooglePrintRecommendationService
-/system/app/HybridAccessory
-/system/app/HybridPlatform
-/system/app/KSICibaEngine
-/system/app/LiveWallpapersPicker
-/system/app/MIUIAccessibility
-/system/app/MIUIFileExplorer
-/system/app/MIUIFrequentPhrase
-/system/app/MIUISecurityInputMethod
-/system/app/MIUIgreenguard
-/system/app/MIpay
-/system/app/MetokNLP
-/system/app/MiConnectService*
-/system/app/MiGameService
-/system/app/MiuiAudioMonitor
-/system/app/MiuiBugReport
-/system/app/MiuiDaemon
-/system/app/MiuiPrintSpoolerBeta
-/system/app/ModemTestBox
-/system/app/PaymentService
-/system/app/PlatformCaptivePortalLogin
-/system/app/SimAppDialog
-/system/app/SogouInput
-/system/app/Stk
-/system/app/TranslationService
-# /system/app/Updater
-/system/app/WallpaperBackup
-/system/app/XiaomiModemDebugService
-/system/app/YouDaoEngine
-/system/priv-app/Backup
-/system/priv-app/BackupRestoreConfirmation
-/system/priv-app/BuiltInPrintService
-/system/priv-app/CallLogBackup
-/system/priv-app/MIService
-/system/priv-app/MIUIMusic
-/system/priv-app/MIUIPersonalAssistant
-/system/priv-app/MIUIQuickSearchBox
-/system/priv-app/MIUIVipService
-/system/priv-app/MiAudioVisual*
-/system/priv-app/MiBrowser
-/system/priv-app/MiGameCenterSDKService
-/system/priv-app/MiRcs
-/system/priv-app/MirrorSmartHub2
-/system/priv-app/MusicFX
-/system/priv-app/ONS
-/system/priv-app/PlatformNetworkPermissionConfig
-/system/priv-app/Traceur
-/system/priv-app/UserDictionaryProvider
-/system_ext/priv-app/EmergencyInfo
-/system_ext/priv-app/GoogleServicesFramework
-/product/app/PhotoTable
-/product/app/aiasst_service
-/product/app/talkback
-/product/app/MIUIFileExplorerPad  # Pad 应用锁相关
-/product/data-app/BaiduIME
-/product/data-app/com.iflytek.inputmethod.miui
-/product/priv-app/ConfigUpdater
-/product/priv-app/GoogleOneTimeInitializer
-/product/priv-app/GooglePlayServicesUpdater
-/sdcard/.turingdebug
-/sdcard/.xlDownload
-/sdcard/Android/data/com.android.browser
-/sdcard/Android/data/com.android.quicksearchbox
-/sdcard/Android/data/com.android.vending
-/sdcard/Android/data/com.miui.bugreport
-/sdcard/Android/data/com.miui.daemon
-/sdcard/Android/data/com.miui.hybrid
-/sdcard/Android/data/com.miui.miservice
-/sdcard/Android/data/com.miui.personalassistant
-/sdcard/Android/data/com.xiaomi.aiasst.service
-/sdcard/Android/obj
-/sdcard/AppTimer
-/sdcard/Audiobooks
-/sdcard/data
-/sdcard/DCIM/.android
-/sdcard/DCIM/.tmfs
-/sdcard/MIUI/BugReportCache
-/sdcard/MIUI/debug_log
-/sdcard/Pictures/.thumbnails
-/sdcard/ramdump
-/sdcard/.turing.dat
+system/system/app/BasicDreams
+system/system/app/CarrierDefaultApp
+system/system/app/ExtShared
+system/system/app/PartnerBookmarksProvider
+system/system/app/PrintRecommendationService
+system/system/app/Protips
+system/system/app/SimAppDialog
+system/system/app/Stk
+system/system/app/Traceur
+system/system/app/WallpaperBackup
+system/system/app/WapiCertManage
+system/system/priv-app/BackupRestoreConfirmation
+system/system/priv-app/BlockedNumberProvider
+system/system/priv-app/BuiltInPrintService
+system/system/priv-app/CallLogBackup
+system/system/priv-app/CellBroadcastLegacyApp
+system/system/priv-app/CellBroadcastServiceModulePlatform
+system/system/priv-app/LiveWallpapersPicker
+system/system/priv-app/LocalTransport
+system/system/priv-app/ManagedProvisioning
+system/system/priv-app/MusicFX
+system/system/priv-app/ONS
+system/system/priv-app/SharedStorageBackup
+system/system/priv-app/StatementService
+system/system/priv-app/SystemHelper  # ----------------------------------------------------
+system/system/priv-app/UserDictionaryProvider
+system_ext/app/datastatusnotification
+system_ext/app/DeviceInfo
+system_ext/app/DeviceStatisticsService
+system_ext/app/MiSightService
+system_ext/app/MiuiDaemon
+system_ext/app/MiuiPrintSpooler
+system_ext/app/ModemTestBox
+system_ext/app/WAPPushManager
+system_ext/priv-app/EmergencyInfo
+system_ext/priv-app/GoogleServicesFramework
+product/app/AiAsstVision
+product/app/CameraTools_beta
+product/app/CatchLog
+product/app/com.xiaomi.macro
+product/app/ConferenceDialer
+product/app/DeviceInfoQR
+product/app/GoogleLocationHistory
+product/app/GooglePrintRecommendationService
+product/app/HybridPlatform
+product/app/mi_connect_service
+product/app/MiBugReport
+product/app/MiLinkCirculateMIUI15
+product/app/MIUIAccessibility
+product/app/MIUIAiasstService
+product/app/MiuiContentCatcherMIUI15
+product/app/MIUIFileExplorer
+product/app/MIUIFileExplorerPad  # Pad 应用锁相关
+product/app/MIUIFrequentPhrase
+product/app/MIUIReporter
+product/app/MIUISecurityInputMethod
+product/app/MIUITouchAssistant
+product/app/MSA
+product/app/Music
+product/app/OtaProvision
+product/app/OTrPBroker
+product/app/PaymentService
+product/app/SecurityOnetrackService
+product/app/SogouInput
+product/app/SwitchAccess
+product/app/system
+product/app/talkback
+product/app/Updater
+product/app/WMService
+product/app/XiaoaiRecommendation
+product/priv-app/Backup
+product/priv-app/ConfigUpdater
+product/priv-app/GmsCore
+product/priv-app/GoogleOneTimeInitializer
+product/priv-app/GooglePlayServicesUpdater
+product/priv-app/MiGameCenterSDKService
+product/priv-app/MIUIAICR
+product/priv-app/MIUIBrowser
+product/priv-app/MIUIMirror
+product/priv-app/MIUIPersonalAssistantPhoneMIUI15
+product/priv-app/MIUIQuickSearchBox
+product/priv-app/RegService
+product/priv-app/SettingsIntelligence
+product/data-app
+# 下载管理
+# 小米画报
+# 小米相册-编辑
+# 计算器
+# 日历
+# 垃圾清理
+# 指南针
+# 时钟
+# 相册
+# 笔记
+# 屏幕录制
+# 手机管家
+# 录音机
+# 主题商店
+# 天气
+# 小米文档查看器
+# 万能遥控
