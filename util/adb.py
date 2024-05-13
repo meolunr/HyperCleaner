@@ -18,9 +18,8 @@ def push(src: str, dst: str):
     execute(f'rm -rf {tmp_file}')
 
 
-def install_test_module():
-    execute(f'mkdir -p {_MODULE_DIR}')
-    push(f'{OVERLAY_DIR}/module.prop', _MODULE_DIR)
+def push_test_module():
+    push(f'{OVERLAY_DIR}/HCTestModule.zip', '/sdcard')
 
 
 def rm(file: str):
