@@ -43,7 +43,6 @@ product/app/GooglePrintRecommendationService
 product/app/HybridPlatform
 product/app/mi_connect_service
 product/app/MiBugReport
-product/app/MiLinkCirculateMIUI15
 product/app/MIUIAccessibility
 product/app/MIUIAiasstService
 product/app/MiuiContentCatcherMIUI15
