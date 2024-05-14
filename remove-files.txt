@@ -72,6 +72,7 @@ product/priv-app/GoogleOneTimeInitializer
 product/priv-app/GooglePlayServicesUpdater
 product/priv-app/MiGameCenterSDKService
 product/priv-app/MIUIAICR
+product/priv-app/MIUIBarrageV2
 product/priv-app/MIUIBrowser
 product/priv-app/MIUIContentExtension
 product/priv-app/MIUIMirror
