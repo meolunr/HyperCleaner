@@ -48,6 +48,21 @@ def unpack_img():
             os.system(f'{extract_erofs} -x -i {file}')
 
 
+def read_rom_information():
+    def getvalue(prop: str):
+        return prop.rstrip().split('=')[1]
+
+    with open('product/etc/build.prop', 'r', encoding='utf-8') as f:
+        for line in f:
+            if line.startswith('ro.product.product.name'):
+                config.device = getvalue(line)
+            elif line.startswith('ro.product.build.version.incremental'):
+                sub_version = re.match(r'V\d+(\.\d+\.\d+\.\d+)\..+', getvalue(line)).group(1)
+                config.version = f'OS1{sub_version}'
+            elif line.startswith('ro.product.build.version.release'):
+                config.sdk = getvalue(line)
+
+
 def patch_vbmeta():
     for img in glob('vbmeta*.img', root_dir='images'):
         log(f'修补 vbmeta: {img}')
@@ -210,6 +225,7 @@ def main():
     compress_zip()
     result = datetime.now() - start
     log(f'已完成, 耗时 {int(result.seconds / 60)} 分 {result.seconds % 60} 秒')
+    read_rom_information()
 
 
 if __name__ == '__main__':
