@@ -40,7 +40,7 @@ def remove_official_recovery():
 
 def unpack_img():
     extract_erofs = f'{BIN_DIR}/extract.erofs.exe'
-    for partition in config.UNPACK_PARTITIONS:
+    for partition in config.unpack_partitions.keys():
         img = f'{partition}.img'
         file = f'images/{img}'
         if imgfile.file_system(file) == imgfile.FS_TYPE_EROFS:
@@ -118,7 +118,7 @@ def handle_pangu_overlay():
 
 def repack_img():
     mkfs_erofs = f'{BIN_DIR}/mkfs.erofs.exe'
-    for partition in config.UNPACK_PARTITIONS:
+    for partition in config.unpack_partitions.keys():
         log(f'打包分区文件: {partition}')
         fs_config = f'config/{partition}_fs_config'
         contexts = f'config/{partition}_file_contexts'
