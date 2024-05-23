@@ -39,13 +39,25 @@ def remove_official_recovery():
 
 
 def unpack_img():
-    extract_erofs = f'{BIN_DIR}/extract.erofs.exe'
     for partition in config.unpack_partitions.keys():
+        config.unpack_partitions[partition] = imgfile.file_system(f'images/{partition}.img')
+
+    extract_erofs = f'{BIN_DIR}/extract.erofs.exe'
+    magiskboot = f'{BIN_DIR}/magiskboot.exe'
+
+    for partition, filesystem in config.unpack_partitions.items():
         img = f'{partition}.img'
         file = f'images/{img}'
-        if imgfile.file_system(file) == imgfile.FS_TYPE_EROFS:
-            log(f'提取分区文件: {img}')
-            os.system(f'{extract_erofs} -x -i {file}')
+        log(f'提取分区文件: {img}, 格式: {filesystem}')
+        match filesystem:
+            case imgfile.FS_TYPE_EROFS:
+                os.system(f'{extract_erofs} -x -i {file}')
+            case imgfile.FS_TYPE_BOOT:
+                os.mkdir(partition)
+                shutil.copy(file, f'{partition}/{img}')
+                os.chdir(partition)
+                os.system(f'{magiskboot} unpack {img}')
+                os.chdir('..')
 
 
 def read_rom_information():
@@ -61,6 +73,12 @@ def read_rom_information():
                 config.version = f'OS1{sub_version}'
             elif line.startswith('ro.product.build.version.release'):
                 config.sdk = getvalue(line)
+
+
+def custom_kernel():
+    log('自定义内核镜像')
+    temp_kernel = '../Image'
+    shutil.copy(temp_kernel, 'boot/kernel')
 
 
 def patch_vbmeta():
@@ -118,11 +136,20 @@ def handle_pangu_overlay():
 
 def repack_img():
     mkfs_erofs = f'{BIN_DIR}/mkfs.erofs.exe'
-    for partition in config.unpack_partitions.keys():
+    magiskboot = f'{BIN_DIR}/magiskboot.exe'
+
+    for partition, filesystem in config.unpack_partitions.items():
         log(f'打包分区文件: {partition}')
-        fs_config = f'config/{partition}_fs_config'
-        contexts = f'config/{partition}_file_contexts'
-        os.system(f'{mkfs_erofs} -zlz4hc,1 -T 1230768000 --mount-point /{partition} --fs-config-file {fs_config} --file-contexts {contexts} images/{partition}.img {partition}')
+        file = f'images/{partition}.img'
+        match filesystem:
+            case imgfile.FS_TYPE_EROFS:
+                fs_config = f'config/{partition}_fs_config'
+                contexts = f'config/{partition}_file_contexts'
+                os.system(f'{mkfs_erofs} -zlz4hc,1 -T 1230768000 --mount-point /{partition} --fs-config-file {fs_config} --file-contexts {contexts} {file} {partition}')
+            case imgfile.FS_TYPE_BOOT:
+                os.chdir(partition)
+                os.system(f'{magiskboot} repack boot.img ../{file}')
+                os.chdir('..')
 
 
 def repack_super():
@@ -226,6 +253,7 @@ def main():
     result = datetime.now() - start
     log(f'已完成, 耗时 {int(result.seconds / 60)} 分 {result.seconds % 60} 秒')
     read_rom_information()
+    custom_kernel()
 
 
 if __name__ == '__main__':
