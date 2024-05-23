@@ -1,3 +1,4 @@
+import argparse
 import hashlib
 import io
 import os
@@ -14,11 +15,10 @@ from hcglobal import BIN_DIR, OVERLAY_DIR, log
 from util import imgfile
 
 
-def unzip():
-    test_file = 'miui_SHENNONG_OS1.0.39.0.UNBCNXM_c67d65e7de_14.0.zip'
-    log(f'解压 {test_file}')
+def unzip(file: str):
+    log(f'解压 {file}')
     _7z = f'{BIN_DIR}/7za.exe'
-    os.system(f'{_7z} e {test_file} payload.bin -oout')
+    os.system(f'{_7z} e {file} payload.bin -oout')
 
 
 def dump_payload():
@@ -75,10 +75,11 @@ def read_rom_information():
                 config.sdk = getvalue(line)
 
 
-def custom_kernel():
+def custom_kernel(file: str):
+    if not file:
+        return
     log('自定义内核镜像')
-    temp_kernel = '../Image'
-    shutil.copy(temp_kernel, 'boot/kernel')
+    shutil.copy(file, 'boot/kernel')
 
 
 def patch_vbmeta():
@@ -236,12 +237,23 @@ def compress_zip():
 
 
 def main():
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument('zip', help='需要处理的 ROM 包')
+    parser.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS, help='显示帮助信息')
+    parser.add_argument('-k', '--kernel', help='自定义内核镜像')
+    args = parser.parse_args()
+
+    if args.kernel:
+        config.unpack_partitions['boot'] = imgfile.FS_TYPE_UNKNOWN
+
     start = datetime.now()
-    unzip()
+    unzip(args.zip)
     os.chdir('out')
     dump_payload()
     remove_official_recovery()
     unpack_img()
+    read_rom_information()
+    custom_kernel(args.kernel)
     patch_vbmeta()
     disable_avb_and_dm_verity()
     handle_pangu_overlay()
@@ -252,8 +264,6 @@ def main():
     compress_zip()
     result = datetime.now() - start
     log(f'已完成, 耗时 {int(result.seconds / 60)} 分 {result.seconds % 60} 秒')
-    read_rom_information()
-    custom_kernel()
 
 
 if __name__ == '__main__':
