@@ -6,7 +6,7 @@ from glob import glob
 
 from build.apkfile import ApkFile
 from build.smali import MethodSpecifier
-from hcglobal import OVERLAY_DIR, log
+from hcglobal import MISC_DIR, log
 
 
 def remove_system_signature_check():
@@ -57,7 +57,7 @@ def rm_files():
     if os.path.exists(analytics):
         os.remove(analytics)
         shutil.rmtree('product/app/AnalyticsCore/oat')
-        shutil.copy(f'{OVERLAY_DIR}/BlankAnalytics.apk', analytics)
+        shutil.copy(f'{MISC_DIR}/BlankAnalytics.apk', analytics)
 
 
 def run():

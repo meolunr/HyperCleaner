@@ -1,6 +1,6 @@
 import os
 
-from hcglobal import OVERLAY_DIR
+from hcglobal import MISC_DIR
 
 _DATA_TMP_DIR = '/data/local/tmp/'
 _MODULE_DIR = '/data/adb/modules/hypercleaner'
@@ -19,7 +19,7 @@ def push(src: str, dst: str):
 
 
 def push_test_module():
-    push(f'{OVERLAY_DIR}/HCTestModule.zip', '/sdcard')
+    push(f'{MISC_DIR}/module_template/HCTestModule.zip', '/sdcard')
 
 
 def module_overlay(file: str):

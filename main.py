@@ -11,20 +11,20 @@ from glob import glob
 import config
 import customizer
 import vbmeta
-from hcglobal import BIN_DIR, OVERLAY_DIR, log
+from hcglobal import LIB_DIR, MISC_DIR, log
 from util import imgfile
 
 
 def unzip(file: str):
     log(f'解压 {file}')
-    _7z = f'{BIN_DIR}/7za.exe'
+    _7z = f'{LIB_DIR}/7za.exe'
     os.system(f'{_7z} e {file} payload.bin -oout')
 
 
 def dump_payload():
     if os.path.exists('payload.bin'):
         log('解包 payload.bin')
-        payload = f'{BIN_DIR}/payload.exe'
+        payload = f'{LIB_DIR}/payload.exe'
         os.system(f'{payload} -o images payload.bin')
     else:
         log('未找到 payload.bin 文件')
@@ -42,8 +42,8 @@ def unpack_img():
     for partition in config.unpack_partitions.keys():
         config.unpack_partitions[partition] = imgfile.file_system(f'images/{partition}.img')
 
-    extract_erofs = f'{BIN_DIR}/extract.erofs.exe'
-    magiskboot = f'{BIN_DIR}/magiskboot.exe'
+    extract_erofs = f'{LIB_DIR}/extract.erofs.exe'
+    magiskboot = f'{LIB_DIR}/magiskboot.exe'
 
     for partition, filesystem in config.unpack_partitions.items():
         img = f'{partition}.img'
@@ -136,8 +136,8 @@ def handle_pangu_overlay():
 
 
 def repack_img():
-    mkfs_erofs = f'{BIN_DIR}/mkfs.erofs.exe'
-    magiskboot = f'{BIN_DIR}/magiskboot.exe'
+    mkfs_erofs = f'{LIB_DIR}/mkfs.erofs.exe'
+    magiskboot = f'{LIB_DIR}/magiskboot.exe'
 
     for partition, filesystem in config.unpack_partitions.items():
         log(f'打包分区文件: {partition}')
@@ -156,7 +156,7 @@ def repack_img():
 def repack_super():
     log('打包 super.img')
     output = io.StringIO()
-    output.write(f'{BIN_DIR}/lpmake.exe ')
+    output.write(f'{LIB_DIR}/lpmake.exe ')
     output.write('--metadata-size 65536 ')
     output.write('--super-name super ')
     output.write('--metadata-slots 3 ')
@@ -184,7 +184,7 @@ def repack_super():
             os.remove(img)
 
     log('使用 zstd 压缩 super.img')
-    zstd = f'{BIN_DIR}/zstd.exe'
+    zstd = f'{LIB_DIR}/zstd.exe'
     os.system(f'{zstd} --rm images/super.img -o images/super.img.zst')
 
 
@@ -208,7 +208,7 @@ def generate_script():
         'var_sdk': config.sdk,
         'var_flash_img': output.getvalue()
     }
-    with open(f'{OVERLAY_DIR}/update-binary', 'r', encoding='utf-8') as fi:
+    with open(f'{MISC_DIR}/update-binary', 'r', encoding='utf-8') as fi:
         content = string.Template(fi.read()).safe_substitute(template_dict)
         with open('update-binary', 'w', encoding='utf-8', newline='') as fo:
             fo.write(content)
@@ -216,7 +216,7 @@ def generate_script():
 
 def compress_zip():
     log('构建刷机包')
-    archives = ['META-INF', 'images/super.img.zst']
+    archives = ['META-INF']
     for img in os.listdir('images'):
         archives.append(f'images/{img}')
 
@@ -224,9 +224,9 @@ def compress_zip():
     if not os.path.exists(flash_script_dir):
         os.makedirs(flash_script_dir)
     shutil.move('update-binary', f'{flash_script_dir}/update-binary')
-    shutil.copy(f'{OVERLAY_DIR}/zstd', f'{flash_script_dir}/zstd')
+    shutil.copy(f'{MISC_DIR}/zstd', f'{flash_script_dir}/zstd')
 
-    _7z = f'{BIN_DIR}/7za.exe'
+    _7z = f'{LIB_DIR}/7za.exe'
     os.system(f'{_7z} a tmp.zip {' '.join(archives)}')
 
     md5 = hashlib.md5()

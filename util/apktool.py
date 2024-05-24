@@ -1,6 +1,6 @@
 import os
 
-from hcglobal import LIB_DIR, BIN_DIR
+from hcglobal import LIB_DIR
 
 
 def decode(file: str, output: str, no_res: bool):
@@ -14,4 +14,4 @@ def build(dir_path: str, copy_original: bool):
 
 
 def zipalign(src: str, dst: str):
-    os.system(f'{BIN_DIR}/zipalign.exe -f -p 4 {src} {dst}')
+    os.system(f'{LIB_DIR}/zipalign.exe -f -p 4 {src} {dst}')
