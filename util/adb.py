@@ -10,6 +10,10 @@ def execute(command: str):
     os.system(f'adb shell su -c {command}')
 
 
+def shell(command: str):
+    return os.popen(f'adb shell su -c {command}')
+
+
 def push(src: str, dst: str):
     tmp_file = f'{_DATA_TMP_DIR}/{os.path.basename(src)}'
     os.system(f'adb push {src} {_DATA_TMP_DIR}')
@@ -20,6 +24,10 @@ def push(src: str, dst: str):
 
 def push_test_module():
     push(f'{MISC_DIR}/module_template/HCTestModule.zip', '/sdcard')
+
+
+def pull(src: str, dst: str):
+    os.system(f'adb pull {src} {dst}')
 
 
 def module_overlay(file: str):

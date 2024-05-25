@@ -8,6 +8,7 @@ import string
 from datetime import datetime
 from glob import glob
 
+import appupdate
 import config
 import customizer
 import vbmeta
@@ -236,13 +237,22 @@ def compress_zip():
     os.rename('tmp.zip', f'HC_{config.device}_{config.version}_{file_hash}_{config.sdk}.zip')
 
 
+def make_update_module():
+    os.chdir('out/appupdate')  # Temporary folder for testing
+    appupdate.pull_updated_app(False)
+
+
 def main():
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('zip', help='需要处理的 ROM 包')
     parser.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS, help='显示帮助信息')
     parser.add_argument('-k', '--kernel', help='自定义内核镜像')
+    parser.add_subparsers().add_parser('appupdate', help='打包系统应用更新模块')
     args = parser.parse_args()
 
+    if args.zip == 'appupdate':
+        make_update_module()
+        return
     if args.kernel:
         config.unpack_partitions['boot'] = imgfile.FS_TYPE_UNKNOWN
 
@@ -264,6 +274,13 @@ def main():
     compress_zip()
     result = datetime.now() - start
     log(f'已完成, 耗时 {int(result.seconds / 60)} 分 {result.seconds % 60} 秒')
+
+    # 提取已更新的apk HC_AppUpdate_20240623.zip')
+    # 主题破解相关
+    # cust分区
+    # 去除反诈
+    # 打包应用更新ksu模块？
+    # payload.py
 
 
 if __name__ == '__main__':
