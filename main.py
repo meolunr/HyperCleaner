@@ -253,6 +253,7 @@ def main():
     if args.zip == 'appupdate':
         make_update_module()
         return
+
     if args.kernel:
         config.unpack_partitions['boot'] = imgfile.FS_TYPE_UNKNOWN
 
