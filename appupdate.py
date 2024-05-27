@@ -43,7 +43,7 @@ def get_app_path_in_data():
 
 
 # TODO: /data/ksu/module updated app
-def pull_updated_app2(full_ota: bool):
+def pull_updated_app(full_ota: bool):
     path_map_system = get_app_path_in_system()
     path_map_data = get_app_path_in_data()
 

@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import string
+import time
 from datetime import datetime
 from glob import glob
 
@@ -238,8 +239,19 @@ def compress_zip():
 
 
 def make_update_module():
+    log('构建系统应用更新模块')
     os.chdir('out/appupdate')  # Temporary folder for testing
     appupdate.pull_updated_app(False)
+
+    # version_code = time.strftime('%Y%m%d')
+    version_code = '19700103'
+    with open(f'{MISC_DIR}/module_template/AppUpdate/module.prop', 'r', encoding='utf-8') as fi:
+        content = string.Template(fi.read()).safe_substitute(var_version=time.strftime('%Y.%m.%d'), var_version_code=version_code)
+        with open('module.prop', 'w', encoding='utf-8', newline='') as fo:
+            fo.write(content)
+
+    _7z = f'{LIB_DIR}/7za.exe'
+    os.system(f'{_7z} a HC_AppUpdate_{version_code}.zip {' '.join(os.listdir())}')
 
 
 def main():
