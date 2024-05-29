@@ -9,6 +9,33 @@ from build.smali import MethodSpecifier
 from hcglobal import MISC_DIR, log
 
 
+def rm_files():
+    def ignore_comment(line: str):
+        annotation_index = line.find('#')
+        if annotation_index >= 0:
+            line = line[:annotation_index]
+        return line.strip()
+
+    with open(f'{sys.path[0]}/remove-files.txt', 'r', encoding='utf-8') as f:
+        for item in map(ignore_comment, f.readlines()):
+            if len(item) == 0:
+                continue
+            if os.path.exists(item):
+                log(f'删除文件: {item}')
+                shutil.rmtree(item)
+            else:
+                log(f'文件不存在: {item}')
+
+
+def replace_analytics():
+    log('替换 BlankAnalytics')
+    analytics = 'product/app/AnalyticsCore/AnalyticsCore.apk'
+    if os.path.exists(analytics):
+        os.remove(analytics)
+        shutil.rmtree('product/app/AnalyticsCore/oat')
+        shutil.copy(f'{MISC_DIR}/BlankAnalytics.apk', analytics)
+
+
 def remove_system_signature_check():
     log('去除系统签名检查')
     apk = ApkFile('system/system/framework/services.jar')
@@ -35,34 +62,10 @@ def remove_system_signature_check():
         os.remove(file)
 
 
-def rm_files():
-    def ignore_comment(line: str):
-        annotation_index = line.find('#')
-        if annotation_index >= 0:
-            line = line[:annotation_index]
-        return line.strip()
-
-    with open(f'{sys.path[0]}/remove-files.txt', 'r', encoding='utf-8') as f:
-        for item in map(ignore_comment, f.readlines()):
-            if len(item) == 0:
-                continue
-            if os.path.exists(item):
-                log(f'删除文件: {item}')
-                shutil.rmtree(item)
-            else:
-                log(f'文件不存在: {item}')
-
-    log('替换 BlankAnalytics')
-    analytics = 'product/app/AnalyticsCore/AnalyticsCore.apk'
-    if os.path.exists(analytics):
-        os.remove(analytics)
-        shutil.rmtree('product/app/AnalyticsCore/oat')
-        shutil.copy(f'{MISC_DIR}/BlankAnalytics.apk', analytics)
-
-
 def run():
-    remove_system_signature_check()
     rm_files()
+    replace_analytics()
+    remove_system_signature_check()
 
 
 # Unused Code ==================================================================================
