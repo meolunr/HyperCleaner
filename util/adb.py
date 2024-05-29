@@ -2,7 +2,7 @@ import os
 
 from hcglobal import MISC_DIR
 
-_DATA_TMP_DIR = '/data/local/tmp/'
+_DATA_TMP_DIR = '/data/local/tmp'
 _MODULE_DIR = '/data/adb/modules/hypercleaner'
 
 
@@ -22,12 +22,12 @@ def push(src: str, dst: str):
     execute(f'rm -rf {tmp_file}')
 
 
-def push_test_module():
-    push(f'{MISC_DIR}/module_template/HCTestModule.zip', '/sdcard')
-
-
 def pull(src: str, dst: str):
     os.system(f'adb pull {src} {dst}')
+
+
+def push_test_module():
+    push(f'{MISC_DIR}/module_template/HCTestModule.zip', '/sdcard')
 
 
 def module_overlay(file: str):
@@ -36,7 +36,7 @@ def module_overlay(file: str):
     push(file, dir_name)
 
 
-def rm(file: str):
+def module_rm(file: str):
     dir_name = os.path.dirname(file)
-    execute(f'mkdir -p {_MODULE_DIR}{dir_name}')
-    execute(f'mknod {_MODULE_DIR}{file} c 0 0')
+    execute(f'mkdir -p {_MODULE_DIR}/{dir_name}')
+    execute(f'mknod {_MODULE_DIR}/{file} c 0 0')
