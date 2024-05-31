@@ -62,34 +62,34 @@ def remove_system_signature_check():
         os.remove(file)
 
 
+def disable_wake_path_dialog():
+    log('禁用关联启动对话框')
+    apk = ApkFile('system_ext/framework/miui-services.jar')
+    apk.decode()
+
+    smali = apk.open_smali('miui/app/ActivitySecurityHelper.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'getCheckStartActivityIntent'
+    old_body = smali.find_method(specifier)
+    pattern = 'if-eqz p6, :cond_.+'
+    match = re.search(pattern, old_body)
+    new_body = old_body.replace(match.group(0), '')
+    smali.method_replace(old_body, new_body)
+
+    apk.build()
+    for file in glob('system_ext/framework/**/miui-services.*', recursive=True):
+        if not os.path.samefile(apk.file, file):
+            os.remove(file)
+
+
 def run():
     rm_files()
     replace_analytics()
     remove_system_signature_check()
+    disable_wake_path_dialog()
 
 
 # Unused Code ==================================================================================
-# SecurityCenter
-def disable_wakeup_dialog(apk_file: ApkFile):
-    smali_file = apk_file.open_smali('com/miui/wakepath/ui/ConfirmStartActivity.smali')
-    specifier = MethodSpecifier()
-    specifier.access = MethodSpecifier.Access.PROTECTED
-    specifier.keywords.append('"android.intent.action.PICK"')
-    new_method_fragment = '''\
-    const/4 v0, 0x0
-
-    const/4 v1, -0x1
-
-    invoke-virtual {p0, v0, v1}, Lcom/miui/wakepath/ui/ConfirmStartActivity;->onClick(Landroid/content/DialogInterface;I)V
-
-    invoke-virtual {p0}, Landroid/app/Activity;->finish()V
-
-    return-void\
-    '''
-    new_method_body = smali_file.find_method(specifier).replace('return-void', new_method_fragment)
-    smali_file.method_replace(smali_file.find_method(specifier), new_method_body)
-
-
 # SecurityCenter
 def disable_wifi_blocked_notification(apk_file: ApkFile):
     smali_file = apk_file.open_smali('com/miui/networkassistant/utils/NotificationUtil.smali')

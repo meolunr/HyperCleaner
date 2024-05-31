@@ -288,13 +288,6 @@ def main():
     result = datetime.now() - start
     log(f'已完成, 耗时 {int(result.seconds / 60)} 分 {result.seconds % 60} 秒')
 
-    # 提取已更新的apk HC_AppUpdate_20240623.zip')
-    # 主题破解相关
-    # cust分区
-    # 去除反诈
-    # 打包应用更新ksu模块？
-    # payload.py
-
 
 if __name__ == '__main__':
     main()
