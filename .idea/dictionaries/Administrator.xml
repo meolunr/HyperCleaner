@@ -5,6 +5,7 @@
       <w>erofs</w>
       <w>hypercleaner</w>
       <w>magiskboot</w>
+      <w>mkfs</w>
       <w>mknod</w>
       <w>vbmeta</w>
     </words>
