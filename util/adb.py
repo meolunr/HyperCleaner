@@ -1,4 +1,5 @@
 import os
+import subprocess
 
 from hcglobal import MISC_DIR, log
 
@@ -7,17 +8,17 @@ _MODULE_DIR = '/data/adb/modules/hypercleaner'
 
 
 def execute(command: str):
-    os.system(f'adb shell su -c {command}')
+    subprocess.run(f'adb shell su -c {command}')
 
 
-def shell(command: str):
-    return os.popen(f'adb shell su -c {command}')
+def getoutput(command: str):
+    return subprocess.run(f'adb shell su -c {command}', capture_output=True, encoding='utf-8').stdout
 
 
 def push(src: str, dst: str):
     log(f'推送设备文件: {dst}')
     tmp_file = f'{_DATA_TMP_DIR}/{os.path.basename(src)}'
-    os.popen(f'adb push {src} {_DATA_TMP_DIR}')
+    subprocess.run(f'adb push {src} {_DATA_TMP_DIR}', stdout=subprocess.DEVNULL)
     # Use cp and rm commands to avoid moving file permissions simultaneously
     execute(f'cp -rf {tmp_file} {dst}')
     execute(f'rm -rf {tmp_file}')
@@ -25,12 +26,12 @@ def push(src: str, dst: str):
 
 def pull(src: str, dst: str):
     log(f'拉取设备文件: {src}')
-    os.system(f'adb pull {src} {dst}')
+    subprocess.run(f'adb pull {src} {dst}', stdout=subprocess.DEVNULL)
 
 
 def push_test_module():
     log(f'推送 HC 测试模块到设备内置存储，请手动安装')
-    os.popen(f'adb push {MISC_DIR}/module_template/HCTestModule.zip /sdcard')
+    subprocess.run(f'adb push {MISC_DIR}/module_template/HCTestModule.zip /sdcard', stdout=subprocess.DEVNULL)
 
 
 def module_overlay(file: str):

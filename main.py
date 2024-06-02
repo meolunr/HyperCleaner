@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import string
+import subprocess
 import time
 from datetime import datetime
 from glob import glob
@@ -20,14 +21,14 @@ from util import imgfile
 def unzip(file: str):
     log(f'解压 {file}')
     _7z = f'{LIB_DIR}/7za.exe'
-    os.system(f'{_7z} e {file} payload.bin -oout')
+    subprocess.run(f'{_7z} e {file} payload.bin -oout', check=True)
 
 
 def dump_payload():
     if os.path.exists('payload.bin'):
         log('解包 payload.bin')
         payload = f'{LIB_DIR}/payload.exe'
-        os.system(f'{payload} -o images payload.bin')
+        subprocess.run(f'{payload} -o images payload.bin', check=True)
     else:
         log('未找到 payload.bin 文件')
         exit()
@@ -53,12 +54,12 @@ def unpack_img():
         log(f'提取分区文件: {img}, 格式: {filesystem}')
         match filesystem:
             case imgfile.FS_TYPE_EROFS:
-                os.system(f'{extract_erofs} -x -i {file}')
+                subprocess.run(f'{extract_erofs} -x -i {file}', check=True)
             case imgfile.FS_TYPE_BOOT:
                 os.mkdir(partition)
                 shutil.copy(file, f'{partition}/{img}')
                 os.chdir(partition)
-                os.system(f'{magiskboot} unpack {img}')
+                subprocess.run(f'{magiskboot} unpack {img}', check=True)
                 os.chdir('..')
 
 
@@ -148,10 +149,10 @@ def repack_img():
             case imgfile.FS_TYPE_EROFS:
                 fs_config = f'config/{partition}_fs_config'
                 contexts = f'config/{partition}_file_contexts'
-                os.system(f'{mkfs_erofs} -zlz4hc,1 -T 1230768000 --mount-point /{partition} --fs-config-file {fs_config} --file-contexts {contexts} {file} {partition}')
+                subprocess.run(f'{mkfs_erofs} -zlz4hc,1 -T 1230768000 --mount-point /{partition} --fs-config-file {fs_config} --file-contexts {contexts} {file} {partition}')
             case imgfile.FS_TYPE_BOOT:
                 os.chdir(partition)
-                os.system(f'{magiskboot} repack boot.img ../{file}')
+                subprocess.run(f'{magiskboot} repack boot.img ../{file}')
                 os.chdir('..')
 
 
@@ -178,7 +179,7 @@ def repack_super():
     output.write('--force-full-image ')
     output.write('--output images/super.img')
     cmd = output.getvalue()
-    os.system(cmd)
+    subprocess.run(cmd)
 
     for partition in config.SUPER_PARTITIONS:
         img = f'images/{partition}.img'
@@ -187,7 +188,7 @@ def repack_super():
 
     log('使用 zstd 压缩 super.img')
     zstd = f'{LIB_DIR}/zstd.exe'
-    os.system(f'{zstd} --rm images/super.img -o images/super.img.zst')
+    subprocess.run(f'{zstd} --rm images/super.img -o images/super.img.zst')
 
 
 def generate_script():
@@ -229,7 +230,7 @@ def compress_zip():
     shutil.copy(f'{MISC_DIR}/zstd', f'{flash_script_dir}/zstd')
 
     _7z = f'{LIB_DIR}/7za.exe'
-    os.system(f'{_7z} a tmp.zip {' '.join(archives)}')
+    subprocess.run(f'{_7z} a tmp.zip {' '.join(archives)}')
 
     md5 = hashlib.md5()
     with open('tmp.zip', 'rb') as f:
@@ -251,7 +252,7 @@ def make_update_module():
             fo.write(content)
 
     _7z = f'{LIB_DIR}/7za.exe'
-    os.system(f'{_7z} a HC_AppUpdate_{version_code}.zip {' '.join(os.listdir())}')
+    subprocess.run(f'{_7z} a HC_AppUpdate_{version_code}.zip {' '.join(os.listdir())}')
 
 
 def main():

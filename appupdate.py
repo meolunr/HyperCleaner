@@ -1,4 +1,4 @@
-import os.path
+import os
 import re
 import shutil
 import string
@@ -15,7 +15,7 @@ def get_app_path_in_system():
 
     section = False
     package = ''
-    for line in adb.shell('dumpsys package packages'):
+    for line in adb.getoutput('dumpsys package packages'):
         if line.startswith('Hidden system packages:'):
             section = True
         elif section:
@@ -32,7 +32,7 @@ def get_app_path_in_system():
 def get_app_path_in_data():
     path_map = {}
 
-    for line in adb.shell('pm list packages -f -s'):
+    for line in adb.getoutput('pm list packages -f -s'):
         line = line[8:].strip()
         if not line.startswith('/data/app/'):
             continue
