@@ -12,7 +12,8 @@ def execute(command: str):
 
 
 def getoutput(command: str):
-    return subprocess.run(f'adb shell su -c {command}', capture_output=True, encoding='utf-8').stdout
+    popen = subprocess.Popen(f'adb shell su -c {command}', stdout=subprocess.PIPE, universal_newlines=True)
+    return popen.stdout
 
 
 def push(src: str, dst: str):

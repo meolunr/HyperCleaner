@@ -12,7 +12,7 @@ from glob import glob
 
 import appupdate
 import config
-import customizer
+import customize
 import vbmeta
 from hcglobal import LIB_DIR, MISC_DIR, log
 from util import imgfile
@@ -238,10 +238,14 @@ def compress_zip():
 def make_update_module():
     log('构建系统应用更新模块')
     os.chdir('out/appupdate')  # Temporary folder for testing
-    appupdate.pull_updated_app(False)
+    appupdate.run_on_ksu_module()
 
-    # version_code = time.strftime('%Y%m%d')
-    version_code = '19700103'
+    # Let KernelSU handle partition path automatically
+    for partition in config.unpack_partitions.keys():
+        if partition != 'system' and os.path.isdir(partition):
+            shutil.move(partition, f'system/{partition}')
+
+    version_code = time.strftime('%Y%m%d')
     with open(f'{MISC_DIR}/module_template/AppUpdate/module.prop', 'r', encoding='utf-8') as fi:
         content = string.Template(fi.read()).safe_substitute(var_version=time.strftime('%Y.%m.%d'), var_version_code=version_code)
         with open('module.prop', 'w', encoding='utf-8', newline='') as fo:
@@ -277,7 +281,7 @@ def main():
     patch_vbmeta()
     disable_avb_and_dm_verity()
     handle_pangu_overlay()
-    customizer.run()
+    customize.run()
     repack_img()
     repack_super()
     generate_script()

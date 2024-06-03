@@ -8,7 +8,7 @@ from hcglobal import MISC_DIR, log
 from util import adb
 
 
-def get_app_path_in_system():
+def get_app_in_system():
     path_map = {}
     pattern_package = re.compile(r' {2}Package \[(.+)]')
     pattern_path = re.compile(r' {4}codePath=(.+)')
@@ -29,7 +29,7 @@ def get_app_path_in_system():
     return path_map
 
 
-def get_app_path_in_data():
+def get_app_in_data():
     path_map = {}
 
     for line in adb.getoutput('pm list packages -f -s'):
@@ -43,37 +43,45 @@ def get_app_path_in_data():
 
 
 # TODO: /data/ksu/module updated app
-def pull_updated_app(full_ota: bool):
-    path_map_system = get_app_path_in_system()
-    path_map_data = get_app_path_in_data()
+def run_on_full_ota():
+    path_map_system = get_app_in_system()
+    path_map_data = get_app_in_data()
 
-    if full_ota:
-        for package, path_in_data in path_map_data.items():
-            path_in_system = path_map_system[package]
-            if path_in_system.startswith('/system/'):
-                path_in_system = f'/system{path_in_system}'
-            log(f'更新系统应用: {path_in_system}')
+    for package, path_in_data in path_map_data.items():
+        path_in_system = path_map_system[package]
+        if path_in_system.startswith('/system/'):
+            path_in_system = f'/system{path_in_system}'
+        log(f'更新系统应用: {path_in_system}')
 
-            path_in_system = path_in_system[1:]
-            adb.pull(path_in_data, f'{path_in_system}/{os.path.basename(path_in_system)}.apk')
-            oat = f'{path_in_system}/oat'
-            if os.path.exists(oat):
-                shutil.rmtree(oat)
-    else:
-        remove_oat = []
+        path_in_system = path_in_system[1:]
+        adb.pull(path_in_data, f'{path_in_system}/{os.path.basename(path_in_system)}.apk')
+        oat = f'{path_in_system}/oat'
+        if os.path.exists(oat):
+            shutil.rmtree(oat)
 
-        for package, path_in_data in path_map_data.items():
-            if package not in config.MODIFY_PACKAGE:
-                continue
-            path_in_system = path_map_system[package]
+
+# TODO: /data/ksu/module updated app
+def run_on_ksu_module():
+    path_map_system = get_app_in_system()
+    path_map_data = get_app_in_data()
+    remove_oat = []
+
+    for package, path_in_data in path_map_data.items():
+        if package not in config.MODIFY_PACKAGE:
+            continue
+        path_in_system = path_map_system[package]
+        log(f'更新系统应用: {path_in_system}')
+
+        if path_in_system.startswith('/system/'):
             remove_oat.append(f'{path_in_system}/oat')
-            log(f'更新系统应用: {path_in_system}')
+        else:
+            remove_oat.append(f'/system{path_in_system}/oat')
 
-            path_in_system = path_in_system[1:]
-            os.makedirs(path_in_system)
-            adb.pull(path_in_data, f'{path_in_system}/{os.path.basename(path_in_system)}.apk')
+        path_in_system = path_in_system[1:]
+        os.makedirs(path_in_system)
+        adb.pull(path_in_data, f'{path_in_system}/{os.path.basename(path_in_system)}.apk')
 
-        with open(f'{MISC_DIR}/module_template/AppUpdate/customize.sh', 'r', encoding='utf-8') as fi:
-            content = string.Template(fi.read()).safe_substitute(var_remove_oat='\n'.join(remove_oat))
-            with open('customize.sh', 'w', encoding='utf-8', newline='') as fo:
-                fo.write(content)
+    with open(f'{MISC_DIR}/module_template/AppUpdate/customize.sh', 'r', encoding='utf-8') as fi:
+        content = string.Template(fi.read()).safe_substitute(var_remove_oat='\n'.join(remove_oat))
+        with open('customize.sh', 'w', encoding='utf-8', newline='') as fo:
+            fo.write(content)
