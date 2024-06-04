@@ -8,6 +8,20 @@ from hcglobal import MISC_DIR, log
 from util import adb
 
 
+class NewApp(object):
+    def __init__(self, package, data_path, system_path):
+        self.package = package
+        self.data_path = data_path
+        self.system_path_rom = self._combine_system_path(system_path, False)
+        self.system_path_module = self._combine_system_path(system_path, True)
+
+    @staticmethod
+    def _combine_system_path(system_path, is_module):
+        if (is_module and not system_path.startswith('/system/')) or (not is_module and system_path.startswith('/system/')):
+            system_path = f'/system{system_path}'
+        return system_path[1:]
+
+
 def get_app_in_data():
     path_map = {}
 
@@ -42,44 +56,39 @@ def get_app_in_system():
     return path_map
 
 
-# TODO: /data/ksu/module updated app
-def run_on_rom():
-    path_map_system = get_app_in_system()
+def fetch_updated_app():
+    apps = []
     path_map_data = get_app_in_data()
+    path_map_system = get_app_in_system()
 
     for package, path_in_data in path_map_data.items():
-        path_in_system = path_map_system[package]
-        if path_in_system.startswith('/system/'):
-            path_in_system = f'/system{path_in_system}'
-        log(f'更新系统应用: {path_in_system}')
+        app = NewApp(package, path_in_data, path_map_system[package])
+        apps.append(app)
 
-        path_in_system = path_in_system[1:]
-        adb.pull(path_in_data, f'{path_in_system}/{os.path.basename(path_in_system)}.apk')
-        oat = f'{path_in_system}/oat'
+    return apps
+
+
+# TODO: /data/ksu/module updated app
+def run_on_rom():
+    for app in fetch_updated_app():
+        log(f'更新系统应用: {app.system_path_rom}')
+        adb.pull(app.data_path, f'{app.system_path_rom}/{os.path.basename(app.system_path_rom)}.apk')
+        oat = f'{app.system_path_rom}/oat'
         if os.path.exists(oat):
             shutil.rmtree(oat)
 
 
 # TODO: /data/ksu/module updated app
 def run_on_module():
-    path_map_system = get_app_in_system()
-    path_map_data = get_app_in_data()
     remove_oat = []
 
-    for package, path_in_data in path_map_data.items():
-        if package not in config.MODIFY_PACKAGE:
+    for app in fetch_updated_app():
+        if app.package not in config.MODIFY_PACKAGE:
             continue
-        path_in_system = path_map_system[package]
-        log(f'更新系统应用: {path_in_system}')
-
-        if path_in_system.startswith('/system/'):
-            remove_oat.append(f'{path_in_system}/oat')
-        else:
-            remove_oat.append(f'/system{path_in_system}/oat')
-
-        path_in_system = path_in_system[1:]
-        os.makedirs(path_in_system)
-        adb.pull(path_in_data, f'{path_in_system}/{os.path.basename(path_in_system)}.apk')
+        log(f'更新系统应用: {app.system_path_module}')
+        os.makedirs(app.system_path_rom)
+        adb.pull(app.data_path, f'{app.system_path_rom}/{os.path.basename(app.system_path_rom)}.apk')
+        remove_oat.append(f'/{app.system_path_module}/oat')
 
     with open(f'{MISC_DIR}/module_template/AppUpdate/customize.sh', 'r', encoding='utf-8') as fi:
         content = string.Template(fi.read()).safe_substitute(var_remove_oat='\n'.join(remove_oat))
