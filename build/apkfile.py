@@ -6,7 +6,7 @@ from util import apktool
 from .smaliparser import SmaliParser
 
 
-class ApkFile(object):
+class ApkFile:
     def __init__(self, file: str):
         self.file = file
         self.output = f'{self.file}.out'

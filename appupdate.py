@@ -8,6 +8,19 @@ from hcglobal import MISC_DIR, log
 from util import adb
 
 
+def get_app_in_data():
+    path_map = {}
+
+    for line in adb.getoutput('pm list packages -f -s'):
+        line = line[8:].strip()
+        if not line.startswith('/data/app/'):
+            continue
+        splits = line.rsplit('=', 1)
+        path_map[splits[1]] = splits[0]
+
+    return path_map
+
+
 def get_app_in_system():
     path_map = {}
     pattern_package = re.compile(r' {2}Package \[(.+)]')
@@ -29,21 +42,8 @@ def get_app_in_system():
     return path_map
 
 
-def get_app_in_data():
-    path_map = {}
-
-    for line in adb.getoutput('pm list packages -f -s'):
-        line = line[8:].strip()
-        if not line.startswith('/data/app/'):
-            continue
-        splits = line.rsplit('=', 1)
-        path_map[splits[1]] = splits[0]
-
-    return path_map
-
-
 # TODO: /data/ksu/module updated app
-def run_on_full_ota():
+def run_on_rom():
     path_map_system = get_app_in_system()
     path_map_data = get_app_in_data()
 
@@ -61,7 +61,7 @@ def run_on_full_ota():
 
 
 # TODO: /data/ksu/module updated app
-def run_on_ksu_module():
+def run_on_module():
     path_map_system = get_app_in_system()
     path_map_data = get_app_in_data()
     remove_oat = []

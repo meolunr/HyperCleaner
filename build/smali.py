@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class MethodSpecifier(object):
+class MethodSpecifier:
     class Access(Enum):
         PUBLIC = 'public'
         PROTECTED = 'protected'
@@ -16,7 +16,7 @@ class MethodSpecifier(object):
         self.keywords: list[str] = []
 
 
-class SmaliFile(object):
+class SmaliFile:
     def __init__(self, file: str):
         self.file = file
         self._methods: list[MethodSpecifier] = []

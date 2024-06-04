@@ -251,7 +251,7 @@ def compress_zip():
 def make_update_module():
     log('构建系统应用更新模块')
     os.chdir('out/appupdate')  # Temporary folder for testing
-    appupdate.run_on_ksu_module()
+    appupdate.run_on_module()
 
     # Let KernelSU handle partition path automatically
     for partition in config.unpack_partitions.keys():

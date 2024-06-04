@@ -2,7 +2,7 @@ import os
 import struct
 
 
-class AvbHeader(object):
+class AvbHeader:
     SIZE = 256
     FLAG_DISABLE_VERITY = 0x1
     FLAG_DISABLE_VERIFICATION = 0x2
@@ -56,7 +56,7 @@ def round_to_multiple(number, size):
     return number + size - remainder
 
 
-class AvbDescriptor(object):
+class AvbDescriptor:
     _FORMAT_STRING = '!QQ'  # tag, num_bytes_following (descriptor header)
     _SIZE = 16
 
@@ -106,7 +106,8 @@ class AvbPropertyDescriptor(AvbDescriptor):
         return desc + key_encoded + b'\0' + self.value + b'\0' + padding_size * b'\0'
 
 
-class VbMeta(object):
+class VbMeta:
+
     def __init__(self, file: str):
         self.file = file
         self._image_size = os.path.getsize(file)

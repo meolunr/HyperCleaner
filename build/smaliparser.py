@@ -4,7 +4,7 @@ from .smali import MethodSpecifier
 from .smali import SmaliFile
 
 
-class SmaliParser(object):
+class SmaliParser:
 
     def __init__(self, file: str):
         self.smali_file = SmaliFile(file)
