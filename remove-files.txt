@@ -47,8 +47,8 @@ product/app/MIUIAccessibility
 product/app/MIUIAiasstService
 product/app/MiuiContentCatcherMIUI15
 product/app/MIUIFileExplorer
-product/app/MIUIFileExplorerPad  # Pad 应用锁相关
 product/app/MIUIFrequentPhrase
+product/app/MIUIGuardProvider
 product/app/MIUIReporter
 product/app/MIUISecurityInputMethod
 product/app/MIUITouchAssistant
@@ -88,7 +88,6 @@ product/data-app
 # 计算器
 # 日历
 # 垃圾清理
-# 指南针
 # 时钟
 # 相册
 # 笔记

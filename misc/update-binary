@@ -92,9 +92,8 @@ fi
 print "- 开始刷入"
 $var_flash_img
 print "- 清除缓存"
-rm -rf /data/dalvik-cache/arm/*
-rm -rf /data/dalvik-cache/arm64/*
-rm -rf /data/system/package_cache/*
+rm -rf /data/dalvik-cache
+rm -rf /data/system/package_cache
 
 print " "
 print "- 已完成"
