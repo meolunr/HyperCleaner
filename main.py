@@ -190,6 +190,7 @@ def repack_super():
 def generate_script():
     log('生成刷机脚本')
     output = io.StringIO()
+
     for img in os.listdir('images'):
         if not img.endswith('.img'):
             continue
@@ -200,12 +201,24 @@ def generate_script():
         output.write('flashZstd "images/super.img.zst" "/dev/block/bootdevice/by-name/super"\n\n')
         for item in config.SUPER_PARTITIONS:
             output.write(f'remapSuper {item}_a\n')
+    var_flash_img = output.getvalue()
+
+    var_remove_data_app = ''
+    if config.remove_data_apps:
+        output.truncate(0)
+        output.seek(0)
+        output.write('\nprint "- 更新系统应用"\n')
+        output.write('lookupPackagePath\n')
+        for package in config.remove_data_apps:
+            output.write(f'removeDataApp {package}\n')
+        var_remove_data_app = output.getvalue()
 
     template_dict = {
         'var_device': config.device,
         'var_version': config.version,
         'var_sdk': config.sdk,
-        'var_flash_img': output.getvalue()
+        'var_flash_img': var_flash_img,
+        'var_remove_data_app': var_remove_data_app
     }
     with open(f'{MISC_DIR}/update-binary', 'r', encoding='utf-8') as fi:
         content = string.Template(fi.read()).safe_substitute(template_dict)

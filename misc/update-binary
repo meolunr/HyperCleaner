@@ -4,7 +4,7 @@ outFd=/proc/self/fd/$2
 zipFile="$3"
 
 print() {
-  echo -e "ui_print $1\nui_print" >>$outFd
+	echo -e "ui_print $1\nui_print" >>$outFd
 }
 
 waitForVolumeKey() {
@@ -23,30 +23,48 @@ waitForVolumeKey() {
 }
 
 flash() {
-  print "- 正在刷入分区 $(echo $2 | cut -d '/' -f 6)"
-  unzip -p "$zipFile" $1 > $2
+	print "- 正在刷入分区 $(echo $2 | cut -d '/' -f 6)"
+	unzip -p "$zipFile" $1 > $2
 }
 
 flashZstd() {
-  print "- 正在刷入分区 $(echo $2 | cut -d '/' -f 6)"
-  unzip -p "$zipFile" $1 | /tmp/META-INF/com/google/android/zstd -c -d > $2
+	print "- 正在刷入分区 $(echo $2 | cut -d '/' -f 6)"
+	unzip -p "$zipFile" $1 | /tmp/hypercleaner/zstd -c -d > $2
 }
 
 remapSuper() {
 	if [ -e /dev/block/mapper/$1 ]; then
-	    lptools unmap $1
+		lptools unmap $1
 		lptools map $1
 	fi
 }
 
-#####################################################################################
+lookupPackagePath() {
+	if [ -a /tmp/hypercleaner/PackagePath.txt ]; then
+		rm -rf /tmp/hypercleaner/PackagePath.txt
+	fi
+	for i in $(ls /data/app); do
+		package=$(ls "/data/app/$i" | cut -d '-' -f 1)
+		echo "$package:/data/app/$i" >> /tmp/hypercleaner/PackagePath.txt
+	done
+}
 
-if [ -d /tmp ]; then
-	rm -rf /tmp
+removeDataApp() {
+	package=$(grep "^$1:" /tmp/hypercleaner/PackagePath.txt)
+	path=$(echo $package | cut -d ':' -f 2)
+	if [ -n "$path" ]; then
+		rm -rf "$path"
+	fi
+}
+
+# ===================================================================================
+
+if [ -d /tmp/hypercleaner ]; then
+	rm -rf /tmp/hypercleaner
 fi
-mkdir -p /tmp
-unzip "$zipFile" META-INF/com/google/android/zstd -d /tmp
-chmod -R 0755 /tmp
+mkdir -p /tmp/hypercleaner
+unzip -j "$zipFile" META-INF/com/google/android/zstd -d /tmp/hypercleaner
+chmod -R 0755 /tmp/hypercleaner
 
 device=$(getprop ro.product.name)
 print "=============================="
@@ -75,8 +93,8 @@ fi
 if [ "$zipFile" != "/sideload/package.zip" ]; then
 	print "- 正在校验 MD5"
 	romName=$(basename $zipFile)
-	hashA=$(md5sum $zipFile |head -c 10)
-	hashB=$(echo $romName |cut -d '_' -f 4)
+	hashA=$(md5sum $zipFile | head -c 10)
+	hashB=$(echo $romName | cut -d '_' -f 4)
 
 	if [ "$hashA" != "$hashB" ]; then
 		print "- MD5 校验失败，可能是文件损坏或您修改过文件名，是否继续刷入？"
@@ -90,7 +108,7 @@ if [ "$zipFile" != "/sideload/package.zip" ]; then
 fi
 
 print "- 开始刷入"
-$var_flash_img
+$var_flash_img$var_remove_data_app
 print "- 清除缓存"
 rm -rf /data/dalvik-cache
 rm -rf /data/system/package_cache

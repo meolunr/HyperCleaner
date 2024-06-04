@@ -9,6 +9,7 @@ MODIFY_PACKAGE = [
 unpack_partitions = dict.fromkeys((
     'product', 'system', 'system_ext', 'vendor'
 ), imgfile.FS_TYPE_UNKNOWN)
+remove_data_apps: [str] = []
 device = ''
 version = ''
 sdk = 0
