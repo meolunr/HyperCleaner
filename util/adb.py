@@ -47,3 +47,7 @@ def module_rm(file: str):
     dir_name = os.path.dirname(file)
     execute(f'mkdir -p {_MODULE_DIR}/{dir_name}')
     execute(f'mknod {_MODULE_DIR}/{file} c 0 0')
+
+
+def get_apk_path(package: str):
+    return getoutput(f'pm path {package}').read()[8:-1]

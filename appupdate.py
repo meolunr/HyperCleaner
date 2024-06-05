@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import shutil
@@ -7,6 +8,8 @@ import config
 from hcglobal import MISC_DIR, log
 from util import adb
 
+RECORD_JSON = 'product/UpdatedApp.json'
+
 
 class NewApp(object):
     def __init__(self, package, data_path, system_path):
@@ -14,6 +17,7 @@ class NewApp(object):
         self.data_path = data_path
         self.system_path_rom = self._combine_system_path(system_path, False)
         self.system_path_module = self._combine_system_path(system_path, True)
+        self.from_module = False
 
     @staticmethod
     def _combine_system_path(system_path, is_module):
@@ -56,19 +60,73 @@ def get_app_in_system():
     return path_map
 
 
+def read_record():
+    log('读取系统应用更新记录')
+    if not os.path.isfile(RECORD_JSON):
+        if not os.path.isdir('product'):
+            os.mkdir('product')
+        adb.pull(f'/{RECORD_JSON}', 'product')
+        open(RECORD_JSON, 'a').close()
+
+    with open(RECORD_JSON, 'r', encoding='utf-8') as f:
+        try:
+            data: dict = json.load(f)
+            rom, module = set(data.get('rom', set())), set(data.get('module', set()))
+        except json.decoder.JSONDecodeError:
+            rom, module = set(), set()
+    return rom, module
+
+
+def write_record(rom: set = None, module: set = None):
+    rom_to_be_written, module_to_be_written = read_record()
+    log('写入系统应用更新记录')
+    with open(RECORD_JSON, 'w+', encoding='utf-8', newline='\n') as f:
+        if rom:
+            rom_to_be_written = rom
+        if module:
+            module_to_be_written = module
+
+        # Move rom-record of the app that has been updated when building rom to module-record
+        for package in module_to_be_written:
+            if package in rom_to_be_written:
+                rom_to_be_written.remove(package)
+
+        data = {}
+        if len(rom_to_be_written) != 0:
+            data['rom'] = tuple(rom_to_be_written)
+        if len(module_to_be_written) != 0:
+            data['module'] = tuple(module_to_be_written)
+        json.dump(data, f)
+
+
 def fetch_updated_app():
-    apps = []
+    apps = set()
+    existing = set()
+
     path_map_data = get_app_in_data()
     path_map_system = get_app_in_system()
-
     for package, path_in_data in path_map_data.items():
         app = NewApp(package, path_in_data, path_map_system[package])
-        apps.append(app)
+        apps.add(app)
+        existing.add(package)
+
+    rom, module = read_record()
+    for package in rom:
+        path = adb.get_apk_path(package)
+        app = NewApp(package, path, os.path.dirname(path))
+        app.from_module = False
+        if package not in existing:
+            apps.add(app)
+    for package in module:
+        path = adb.get_apk_path(package)
+        app = NewApp(package, path, os.path.dirname(path))
+        app.from_module = True
+        if package not in existing:
+            apps.add(app)
 
     return apps
 
 
-# TODO: /data/ksu/module updated app
 def run_on_rom():
     for app in fetch_updated_app():
         log(f'更新系统应用: {app.system_path_rom}')
@@ -78,18 +136,20 @@ def run_on_rom():
             shutil.rmtree(oat)
 
 
-# TODO: /data/ksu/module updated app
 def run_on_module():
-    remove_oat = []
+    packages = set()
+    remove_oat = set()
 
     for app in fetch_updated_app():
-        if app.package not in config.MODIFY_PACKAGE:
+        if not app.from_module and app.package not in config.MODIFY_PACKAGE:
             continue
         log(f'更新系统应用: {app.system_path_module}')
         os.makedirs(app.system_path_rom)
         adb.pull(app.data_path, f'{app.system_path_rom}/{os.path.basename(app.system_path_rom)}.apk')
-        remove_oat.append(f'/{app.system_path_module}/oat')
+        packages.add(app.package)
+        remove_oat.add(f'/{app.system_path_module}/oat')
 
+    write_record(module=packages)
     with open(f'{MISC_DIR}/module_template/AppUpdate/customize.sh', 'r', encoding='utf-8') as fi:
         content = string.Template(fi.read()).safe_substitute(var_remove_oat='\n'.join(remove_oat))
         with open('customize.sh', 'w', encoding='utf-8', newline='') as fo:

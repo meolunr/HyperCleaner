@@ -205,8 +205,8 @@ def generate_script():
 
     var_remove_data_app = ''
     if config.remove_data_apps:
-        output.truncate(0)
         output.seek(0)
+        output.truncate(0)
         output.write('\nprint "- 更新系统应用"\n')
         output.write('lookupPackagePath\n')
         for package in config.remove_data_apps:
