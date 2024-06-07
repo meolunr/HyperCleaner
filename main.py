@@ -4,7 +4,6 @@ import io
 import os
 import re
 import shutil
-import string
 import subprocess
 import time
 from datetime import datetime
@@ -15,7 +14,7 @@ import config
 import customize
 import vbmeta
 from hcglobal import LIB_DIR, MISC_DIR, log
-from util import imgfile
+from util import imgfile, template
 
 
 def unzip(file: str):
@@ -220,10 +219,7 @@ def generate_script():
         'var_flash_img': var_flash_img,
         'var_remove_data_app': var_remove_data_app
     }
-    with open(f'{MISC_DIR}/update-binary', 'r', encoding='utf-8') as fi:
-        content = string.Template(fi.read()).safe_substitute(template_dict)
-        with open('update-binary', 'w', encoding='utf-8', newline='') as fo:
-            fo.write(content)
+    template.substitute(f'{MISC_DIR}/update-binary', mapping=template_dict)
 
 
 def compress_zip():
@@ -259,11 +255,7 @@ def make_update_module():
             shutil.move(partition, f'system/{partition}')
 
     version_code = time.strftime('%Y%m%d')
-    with open(f'{MISC_DIR}/module_template/AppUpdate/module.prop', 'r', encoding='utf-8') as fi:
-        content = string.Template(fi.read()).safe_substitute(var_version=time.strftime('%Y.%m.%d'), var_version_code=version_code)
-        with open('module.prop', 'w', encoding='utf-8', newline='') as fo:
-            fo.write(content)
-
+    template.substitute(f'{MISC_DIR}/module_template/AppUpdate/module.prop', var_version=time.strftime('%Y.%m.%d'), var_version_code=version_code)
     _7z = f'{LIB_DIR}/7za.exe'
     subprocess.run(f'{_7z} a HC_AppUpdate_{version_code}.zip {' '.join(os.listdir())}', check=True)
 

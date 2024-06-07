@@ -3,12 +3,11 @@ import json
 import os
 import re
 import shutil
-import string
 from enum import Enum, auto
 
 import config
 from hcglobal import MISC_DIR, log
-from util import adb
+from util import adb, template
 
 RECORD_JSON = 'product/UpdatedApp.json'
 
@@ -162,11 +161,5 @@ def run_on_module():
         remove_oat.add(f'/{app.system_path_module}/oat')
 
     write_record(module=packages)
-    with open(f'{MISC_DIR}/module_template/AppUpdate/post-fs-data.sh', 'r', encoding='utf-8') as fi:
-        content = string.Template(fi.read()).safe_substitute(var_mount=mount_output.getvalue())
-        with open('post-fs-data.sh', 'w', encoding='utf-8', newline='') as fo:
-            fo.write(content)
-    with open(f'{MISC_DIR}/module_template/AppUpdate/customize.sh', 'r', encoding='utf-8') as fi:
-        content = string.Template(fi.read()).safe_substitute(var_remove_oat='\n'.join(remove_oat))
-        with open('customize.sh', 'w', encoding='utf-8', newline='') as fo:
-            fo.write(content)
+    template.substitute(f'{MISC_DIR}/module_template/AppUpdate/post-fs-data.sh', var_mount=mount_output.getvalue())
+    template.substitute(f'{MISC_DIR}/module_template/AppUpdate/customize.sh', var_remove_oat='\n'.join(remove_oat))
