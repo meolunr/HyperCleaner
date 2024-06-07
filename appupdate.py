@@ -1,8 +1,10 @@
+import io
 import json
 import os
 import re
 import shutil
 import string
+from enum import Enum, auto
 
 import config
 from hcglobal import MISC_DIR, log
@@ -12,12 +14,18 @@ RECORD_JSON = 'product/UpdatedApp.json'
 
 
 class NewApp(object):
+    class Source(Enum):
+        ROM = auto()
+        MODULE = auto()
+        DATA = auto()
+
     def __init__(self, package, data_path, system_path):
         self.package = package
         self.data_path = data_path
+        self.system_path = system_path
         self.system_path_rom = self._combine_system_path(system_path, False)
         self.system_path_module = self._combine_system_path(system_path, True)
-        self.from_module = False
+        self.source = None
 
     @staticmethod
     def _combine_system_path(system_path, is_module):
@@ -107,22 +115,25 @@ def fetch_updated_app():
     path_map_system = get_app_in_system()
     for package, path_in_data in path_map_data.items():
         app = NewApp(package, path_in_data, path_map_system[package])
+        app.source = NewApp.Source.DATA
         apps.add(app)
         existing.add(package)
 
     rom, module = read_record()
     for package in rom:
+        if package in existing:
+            continue
         path = adb.get_apk_path(package)
         app = NewApp(package, path, os.path.dirname(path))
-        app.from_module = False
-        if package not in existing:
-            apps.add(app)
+        app.source = NewApp.Source.ROM
+        apps.add(app)
     for package in module:
+        if package in existing:
+            continue
         path = adb.get_apk_path(package)
         app = NewApp(package, path, os.path.dirname(path))
-        app.from_module = True
-        if package not in existing:
-            apps.add(app)
+        app.source = NewApp.Source.MODULE
+        apps.add(app)
 
     return apps
 
@@ -137,19 +148,24 @@ def run_on_rom():
 
 
 def run_on_module():
+    apps = [x for x in fetch_updated_app() if x.source != NewApp.Source.ROM and x.package in config.MODIFY_PACKAGE]
     packages = set()
+    mount_output = io.StringIO()
     remove_oat = set()
 
-    for app in fetch_updated_app():
-        if not app.from_module and app.package not in config.MODIFY_PACKAGE:
-            continue
+    for app in apps:
         log(f'更新系统应用: {app.system_path_module}')
         os.makedirs(app.system_path_rom)
         adb.pull(app.data_path, f'{app.system_path_rom}/{os.path.basename(app.system_path_rom)}.apk')
         packages.add(app.package)
+        mount_output.write(f'mount -o bind $modDir/{app.system_path_module} {app.system_path}\n')
         remove_oat.add(f'/{app.system_path_module}/oat')
 
     write_record(module=packages)
+    with open(f'{MISC_DIR}/module_template/AppUpdate/post-fs-data.sh', 'r', encoding='utf-8') as fi:
+        content = string.Template(fi.read()).safe_substitute(var_mount=mount_output.getvalue())
+        with open('post-fs-data.sh', 'w', encoding='utf-8', newline='') as fo:
+            fo.write(content)
     with open(f'{MISC_DIR}/module_template/AppUpdate/customize.sh', 'r', encoding='utf-8') as fi:
         content = string.Template(fi.read()).safe_substitute(var_remove_oat='\n'.join(remove_oat))
         with open('customize.sh', 'w', encoding='utf-8', newline='') as fo:
