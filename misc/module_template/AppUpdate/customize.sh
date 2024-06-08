@@ -1,3 +1,2 @@
 REMOVE="
-$var_remove_oat
-"
+$var_remove"
