@@ -150,16 +150,21 @@ def run_on_module():
     apps = [x for x in fetch_updated_app() if x.source != NewApp.Source.ROM and x.package in config.MODIFY_PACKAGE]
     packages = set()
     mount_output = io.StringIO()
-    remove_output = io.StringIO()
+    remove_oat_output = io.StringIO()
+    remove_data_app_output = io.StringIO()
 
     for app in apps:
         log(f'更新系统应用: {app.system_path_module}')
         os.makedirs(app.system_path_rom)
         adb.pull(app.data_path, f'{app.system_path_rom}/{os.path.basename(app.system_path_rom)}.apk')
         packages.add(app.package)
-        mount_output.write(f'mount -o bind $modDir/{app.system_path_module} {app.system_path}\n')
-        remove_output.write(f'/{app.system_path_module}/oat\n')
+        mount_output.write(f'mount -o bind $MODDIR/{app.system_path_module} {app.system_path}\n')
+        remove_oat_output.write(f'/{app.system_path_module}/oat\n')
+        if app.source == NewApp.Source.DATA:
+            remove_data_app_output.write(f'removeDataApp {app.package}\n')
 
     write_record(module=packages)
-    template.substitute(f'{MISC_DIR}/module_template/AppUpdate/post-fs-data.sh', var_mount=mount_output.getvalue())
-    template.substitute(f'{MISC_DIR}/module_template/AppUpdate/customize.sh', var_remove=remove_output.getvalue())
+    template.substitute(f'{MISC_DIR}/module_template/AppUpdate/post-fs-data.sh.bak', var_mount=mount_output.getvalue())
+    template.substitute(f'{MISC_DIR}/module_template/AppUpdate/customize.sh',
+                        var_remove_oat=remove_oat_output.getvalue(), var_remove_data_app=remove_data_app_output.getvalue())
+    shutil.copy(f'{MISC_DIR}/module_template/AppUpdate/post-fs-data.sh', 'post-fs-data.sh')
