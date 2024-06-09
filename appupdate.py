@@ -103,7 +103,7 @@ def write_record(rom: set = None, module: set = None):
             data['rom'] = tuple(rom_to_be_written)
         if len(module_to_be_written) != 0:
             data['module'] = tuple(module_to_be_written)
-        json.dump(data, f)
+        json.dump(data, f, indent=4)
 
 
 def fetch_updated_app():

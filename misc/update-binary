@@ -41,7 +41,7 @@ remapSuper() {
 
 lookupPackagePath() {
 	if [ -a /tmp/hypercleaner/PackagePath.txt ]; then
-		rm -rf /tmp/hypercleaner/PackagePath.txt
+		rm -f /tmp/hypercleaner/PackagePath.txt
 	fi
 	for i in $(ls /data/app); do
 		package=$(ls "/data/app/$i" | cut -d '-' -f 1)
@@ -56,8 +56,6 @@ removeDataApp() {
 		rm -rf "$path"
 	fi
 }
-
-# ===================================================================================
 
 if [ -d /tmp/hypercleaner ]; then
 	rm -rf /tmp/hypercleaner

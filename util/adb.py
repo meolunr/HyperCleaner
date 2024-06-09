@@ -33,7 +33,7 @@ def pull(src: str, dst: str):
 def install_test_module():
     subprocess.run(f'adb push {MISC_DIR}/module_template/HCTestModule.zip /sdcard', stdout=subprocess.DEVNULL)
     execute('ksud module install /sdcard/HCTestModule.zip')
-    execute('rm -rf /sdcard/HCTestModule.zip')
+    execute('rm -f /sdcard/HCTestModule.zip')
     log(f'已安装 HC 测试模块，重启设备后生效')
 
 

@@ -48,9 +48,9 @@ def unpack_img():
         file = f'images/{img}'
         log(f'提取分区文件: {img}, 格式: {filesystem}')
         match filesystem:
-            case imgfile.FS_TYPE_EROFS:
+            case imgfile.FileSystem.EROFS:
                 subprocess.run(f'{extract_erofs} -x -i {file}', check=True)
-            case imgfile.FS_TYPE_BOOT:
+            case imgfile.FileSystem.BOOT:
                 os.mkdir(partition)
                 shutil.copy(file, f'{partition}/{img}')
                 os.chdir(partition)
@@ -140,12 +140,12 @@ def repack_img():
         log(f'打包分区文件: {partition}')
         file = f'images/{partition}.img'
         match filesystem:
-            case imgfile.FS_TYPE_EROFS:
+            case imgfile.FileSystem.EROFS:
                 fs_config = f'config/{partition}_fs_config'
                 contexts = f'config/{partition}_file_contexts'
                 subprocess.run(f'{mkfs_erofs} -zlz4hc,1 -T 1230768000 --mount-point /{partition} --fs-config-file {fs_config} --file-contexts {contexts} {file} {partition}',
                                check=True)
-            case imgfile.FS_TYPE_BOOT:
+            case imgfile.FileSystem.BOOT:
                 os.chdir(partition)
                 subprocess.run(f'{magiskboot} repack boot.img ../{file}', check=True)
                 os.chdir('..')
@@ -249,7 +249,7 @@ def make_update_module():
     os.chdir('out/appupdate')  # Temporary folder for testing
     appupdate.run_on_module()
 
-    # Let KernelSU handle partition path automatically
+    # Let the module manager app handle partition path automatically
     for partition in config.unpack_partitions.keys():
         if partition != 'system' and os.path.isdir(partition):
             shutil.move(partition, f'system/{partition}')
@@ -273,7 +273,7 @@ def main():
         return
 
     if args.kernel:
-        config.unpack_partitions['boot'] = imgfile.FS_TYPE_UNKNOWN
+        config.unpack_partitions['boot'] = None
 
     start = datetime.now()
     unzip(args.zip)
