@@ -30,9 +30,11 @@ def pull(src: str, dst: str):
     subprocess.run(f'adb pull {src} {dst}', stdout=subprocess.DEVNULL)
 
 
-def push_test_module():
-    log(f'推送 HC 测试模块到设备内置存储，请手动安装')
+def install_test_module():
     subprocess.run(f'adb push {MISC_DIR}/module_template/HCTestModule.zip /sdcard', stdout=subprocess.DEVNULL)
+    execute('ksud module install /sdcard/HCTestModule.zip')
+    execute('rm -rf /sdcard/HCTestModule.zip')
+    log(f'已安装 HC 测试模块，重启设备后生效')
 
 
 def module_overlay(file: str):
