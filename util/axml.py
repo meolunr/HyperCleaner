@@ -1,3 +1,4 @@
+import os
 import struct
 from typing import BinaryIO
 
@@ -28,12 +29,28 @@ class StringChunk(Chunk):
         self.string_pool = axml.read(self.size - self.strings_start)
 
 
+class StartNamespaceChunk(Chunk):
+    __FORMAT_STRING = ('<2I'  # line number, comment
+                       '2I')  # prefix, uri (namespace)
+
+    def __init__(self, axml: BinaryIO):
+        super().__init__(axml)
+        buff = axml.read(struct.calcsize(self.__FORMAT_STRING))
+        (_, _, self.prefix, self.uri) = struct.unpack(self.__FORMAT_STRING, buff)
+
+
 class ManifestXml:
     def __init__(self, file: str):
         with open(file, 'rb') as f:
             f.seek(Chunk.CHUNK_HEADER_SIZE)
             self.string_chunk = StringChunk(f)
             self._string_cache = {}
+
+            # Skip resource map chunk
+            f.seek(Chunk(f).size - Chunk.CHUNK_HEADER_SIZE, os.SEEK_CUR)
+
+            self.start_namespace_chunk = StartNamespaceChunk(f)
+            self._namespace_map = {self.start_namespace_chunk.uri: self.start_namespace_chunk.prefix}
 
     def _get_string(self, idx: int):
         if idx in self._string_cache:
@@ -53,3 +70,8 @@ class ManifestXml:
         chars = self.string_chunk.string_pool[chars_start: chars_start + char_num * struct_size].decode(encoding)
         self._string_cache[idx] = chars
         return chars
+
+    def _get_prefix(self, uri: int):
+        if uri == 0xFFFFFFFF:
+            return ''
+        return f'{self._get_string(self._namespace_map[uri])}:'
