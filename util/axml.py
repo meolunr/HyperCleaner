@@ -39,6 +39,31 @@ class StartNamespaceChunk(Chunk):
         (_, _, self.prefix, self.uri) = struct.unpack(self.__FORMAT_STRING, buff)
 
 
+class StartTagChunk(Chunk):
+    __FORMAT_STRING = ('<2I'  # line number, comment
+                       '2I'  # namespace uri, name
+                       '3H'  # start, size, count (attribute)
+                       '3H')  # id index, class index, style index
+
+    class Attribute:
+        DATA_TYPE_STRING = 0x03
+        __FORMAT_STRING = ('<3I'  # namespace uri, name, raw value
+                           'H2BI')  # size, res0, data type, data
+
+        def __init__(self, axml: BinaryIO):
+            buff = axml.read(struct.calcsize(self.__FORMAT_STRING))
+            (self.namespace_uri, self.name, _, _, _, self.data_type, self.data) = struct.unpack(self.__FORMAT_STRING, buff)
+
+    def __init__(self, axml: BinaryIO):
+        super().__init__(axml)
+        buff = axml.read(struct.calcsize(self.__FORMAT_STRING))
+        (_, _, self.namespace_uri, self.name, _, _, self.attribute_count, _, _, _) = struct.unpack(self.__FORMAT_STRING, buff)
+
+        self.attributes = []
+        for i in range(self.attribute_count):
+            self.attributes.append(StartTagChunk.Attribute(axml))
+
+
 class ManifestXml:
     def __init__(self, file: str):
         with open(file, 'rb') as f:
@@ -51,6 +76,13 @@ class ManifestXml:
 
             self.start_namespace_chunk = StartNamespaceChunk(f)
             self._namespace_map = {self.start_namespace_chunk.uri: self.start_namespace_chunk.prefix}
+
+            manifest_chunk = StartTagChunk(f)
+            for attribute in manifest_chunk.attributes:
+                prefix = self._get_prefix(attribute.namespace_uri)
+                if attribute.data_type == StartTagChunk.Attribute.DATA_TYPE_STRING:
+                    attribute.data = self._get_string(attribute.data)
+                print(f'{prefix}{self._get_string(attribute.name)} = {attribute.data}')
 
     def _get_string(self, idx: int):
         if idx in self._string_cache:
