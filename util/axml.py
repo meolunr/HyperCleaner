@@ -66,6 +66,8 @@ class StartTagChunk(Chunk):
 
 class ManifestXml:
     def __init__(self, file: str):
+        self.attributes = {}
+
         with open(file, 'rb') as f:
             f.seek(Chunk.CHUNK_HEADER_SIZE)
             self.string_chunk = StringChunk(f)
@@ -76,13 +78,18 @@ class ManifestXml:
 
             self.start_namespace_chunk = StartNamespaceChunk(f)
             self._namespace_map = {self.start_namespace_chunk.uri: self.start_namespace_chunk.prefix}
+            # Only the manifest tag is parsed because we only need attributes in it
+            self.manifest_chunk = StartTagChunk(f)
 
-            manifest_chunk = StartTagChunk(f)
-            for attribute in manifest_chunk.attributes:
-                prefix = self._get_prefix(attribute.namespace_uri)
-                if attribute.data_type == StartTagChunk.Attribute.DATA_TYPE_STRING:
-                    attribute.data = self._get_string(attribute.data)
-                print(f'{prefix}{self._get_string(attribute.name)} = {attribute.data}')
+        self._read_root_attributes()
+
+    def _read_root_attributes(self):
+        for attribute in self.manifest_chunk.attributes:
+            prefix = self._get_prefix(attribute.namespace_uri)
+            if attribute.data_type == StartTagChunk.Attribute.DATA_TYPE_STRING:
+                attribute.data = self._get_string(attribute.data)
+            key = f'{prefix}{self._get_string(attribute.name)}'
+            self.attributes[key] = attribute.data
 
     def _get_string(self, idx: int):
         if idx in self._string_cache:
