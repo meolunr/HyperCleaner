@@ -1,8 +1,10 @@
 import os
 import shutil
 from glob import glob
+from zipfile import ZipFile
 
 from util import apktool
+from .axml import ManifestXml
 from .smaliparser import SmaliParser
 
 
@@ -39,3 +41,8 @@ class ApkFile:
             if len(keyword_set) == 0:
                 results.append(SmaliParser(file).smali_file)
         return results
+
+    def get_version_code(self):
+        with ZipFile(self.file, 'r') as zip_file:
+            f = zip_file.open('AndroidManifest.xml', 'r')
+            return ManifestXml(f.read()).attributes['android:versionCode']

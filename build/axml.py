@@ -1,14 +1,14 @@
 import os
 import struct
-from typing import BinaryIO
+from io import BytesIO
 
 
 class Chunk:
     CHUNK_HEADER_SIZE = 8
     __FORMAT_STRING = '<2HI'  # type, header size, size (chunk)
 
-    def __init__(self, axml: BinaryIO):
-        (self.type, self.header_size, self.size) = struct.unpack(self.__FORMAT_STRING, axml.read(self.CHUNK_HEADER_SIZE))
+    def __init__(self, f: BytesIO):
+        (self.type, self.header_size, self.size) = struct.unpack(self.__FORMAT_STRING, f.read(self.CHUNK_HEADER_SIZE))
 
 
 class StringChunk(Chunk):
@@ -16,26 +16,26 @@ class StringChunk(Chunk):
                        '2H'  # utf-8, sorted (flags)
                        '2I')  # strings start, styles start
 
-    def __init__(self, axml: BinaryIO):
-        super().__init__(axml)
-        buff = axml.read(struct.calcsize(self.__FORMAT_STRING))
+    def __init__(self, f: BytesIO):
+        super().__init__(f)
+        buff = f.read(struct.calcsize(self.__FORMAT_STRING))
         (self.string_count, _, self._flag_utf8, _, self.strings_start, _) = struct.unpack(self.__FORMAT_STRING, buff)
         self.is_utf8 = self._flag_utf8 != 0
 
         self.string_offsets = []
         for i in range(self.string_count):
-            self.string_offsets.append(struct.unpack('<I', axml.read(4))[0])
+            self.string_offsets.append(struct.unpack('<I', f.read(4))[0])
 
-        self.string_pool = axml.read(self.size - self.strings_start)
+        self.string_pool = f.read(self.size - self.strings_start)
 
 
 class StartNamespaceChunk(Chunk):
     __FORMAT_STRING = ('<2I'  # line number, comment
                        '2I')  # prefix, uri (namespace)
 
-    def __init__(self, axml: BinaryIO):
-        super().__init__(axml)
-        buff = axml.read(struct.calcsize(self.__FORMAT_STRING))
+    def __init__(self, f: BytesIO):
+        super().__init__(f)
+        buff = f.read(struct.calcsize(self.__FORMAT_STRING))
         (_, _, self.prefix, self.uri) = struct.unpack(self.__FORMAT_STRING, buff)
 
 
@@ -50,25 +50,25 @@ class StartTagChunk(Chunk):
         __FORMAT_STRING = ('<3I'  # namespace uri, name, raw value
                            'H2BI')  # size, res0, data type, data
 
-        def __init__(self, axml: BinaryIO):
-            buff = axml.read(struct.calcsize(self.__FORMAT_STRING))
+        def __init__(self, f: BytesIO):
+            buff = f.read(struct.calcsize(self.__FORMAT_STRING))
             (self.namespace_uri, self.name, _, _, _, self.data_type, self.data) = struct.unpack(self.__FORMAT_STRING, buff)
 
-    def __init__(self, axml: BinaryIO):
-        super().__init__(axml)
-        buff = axml.read(struct.calcsize(self.__FORMAT_STRING))
+    def __init__(self, f: BytesIO):
+        super().__init__(f)
+        buff = f.read(struct.calcsize(self.__FORMAT_STRING))
         (_, _, self.namespace_uri, self.name, _, _, self.attribute_count, _, _, _) = struct.unpack(self.__FORMAT_STRING, buff)
 
         self.attributes = []
         for i in range(self.attribute_count):
-            self.attributes.append(StartTagChunk.Attribute(axml))
+            self.attributes.append(StartTagChunk.Attribute(f))
 
 
 class ManifestXml:
-    def __init__(self, file: str):
+    def __init__(self, data: bytes):
         self.attributes = {}
 
-        with open(file, 'rb') as f:
+        with BytesIO(data) as f:
             f.seek(Chunk.CHUNK_HEADER_SIZE)
             self.string_chunk = StringChunk(f)
             self._string_cache = {}
