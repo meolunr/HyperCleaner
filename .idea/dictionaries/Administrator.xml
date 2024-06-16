@@ -10,6 +10,7 @@
       <w>mkfs</w>
       <w>mknod</w>
       <w>vbmeta</w>
+      <w>versioncode</w>
     </words>
   </dictionary>
 </component>

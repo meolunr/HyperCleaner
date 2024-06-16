@@ -25,6 +25,7 @@ class NewApp(object):
         self.system_path_rom = self._combine_system_path(system_path, False)
         self.system_path_module = self._combine_system_path(system_path, True)
         self.source = None
+        self.version_code = None
 
     @staticmethod
     def _combine_system_path(system_path, is_module):
@@ -106,35 +107,45 @@ def write_record(rom: set = None, module: set = None):
         json.dump(data, f, indent=4)
 
 
+def load_version_code(app_map: dict):
+    pattern = re.compile(r'package:(.+) versionCode:(\d+)')
+    for line in adb.getoutput('pm list packages -s --show-versioncode'):
+        match = re.search(pattern, line)
+        if not match:
+            continue
+        app = app_map.get(match.group(1))
+        if app:
+            app.version_code = int(match.group(2))
+
+
 def fetch_updated_app():
-    apps = set()
-    existing = set()
+    app_map: dict[str, NewApp] = {}
 
     path_map_data = get_app_in_data()
     path_map_system = get_app_in_system()
     for package, path_in_data in path_map_data.items():
         app = NewApp(package, path_in_data, path_map_system[package])
         app.source = NewApp.Source.DATA
-        apps.add(app)
-        existing.add(package)
+        app_map[package] = app
 
     rom, module = read_record()
     for package in rom:
-        if package in existing:
+        if package in app_map:
             continue
         path = adb.get_apk_path(package)
         app = NewApp(package, path, os.path.dirname(path))
         app.source = NewApp.Source.ROM
-        apps.add(app)
+        app_map[package] = app
     for package in module:
-        if package in existing:
+        if package in app_map:
             continue
         path = adb.get_apk_path(package)
         app = NewApp(package, path, os.path.dirname(path))
         app.source = NewApp.Source.MODULE
-        apps.add(app)
+        app_map[package] = app
 
-    return apps
+    load_version_code(app_map)
+    return app_map.values()
 
 
 def run_on_rom():
@@ -147,8 +158,8 @@ def run_on_rom():
 
 
 def run_on_module():
-    apps = [x for x in fetch_updated_app() if x.source != NewApp.Source.ROM and x.package in config.MODIFY_PACKAGE]
-    packages = set()
+    apps = {x for x in fetch_updated_app() if x.source != NewApp.Source.ROM and x.package in config.MODIFY_PACKAGE}
+    packages = {()}
     mount_output = io.StringIO()
     remove_oat_output = io.StringIO()
     remove_data_app_output = io.StringIO()
