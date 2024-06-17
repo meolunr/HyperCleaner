@@ -3,6 +3,8 @@ SUPER_PARTITIONS = ('mi_ext', 'odm', 'product', 'system', 'system_dlkm', 'system
 MODIFY_PACKAGE = [
     'placeholder',
 ]
+MODIFY_PACKAGE = (
+)
 
 unpack_partitions = dict.fromkeys((
     'product', 'system', 'system_ext', 'vendor'

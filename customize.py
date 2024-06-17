@@ -42,7 +42,7 @@ def remove_system_signature_check():
     apk.decode()
 
     specifier = MethodSpecifier()
-    specifier.keywords.append('getMinimumSignatureSchemeVersionForTargetSdk')
+    specifier.keywords.add('getMinimumSignatureSchemeVersionForTargetSdk')
     for smali in apk.find_smali('getMinimumSignatureSchemeVersionForTargetSdk'):
         old_body = smali.find_method(specifier)
         pattern = '''\

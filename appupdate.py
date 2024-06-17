@@ -159,7 +159,7 @@ def run_on_rom():
 
 def run_on_module():
     apps = {x for x in fetch_updated_app() if x.source != NewApp.Source.ROM and x.package in config.MODIFY_PACKAGE}
-    packages = {()}
+    packages = set()
     mount_output = io.StringIO()
     remove_oat_output = io.StringIO()
     remove_data_app_output = io.StringIO()

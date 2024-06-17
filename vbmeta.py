@@ -2,6 +2,13 @@ import os
 import struct
 
 
+def round_to_multiple(number, size):
+    remainder = number % size
+    if remainder == 0:
+        return number
+    return number + size - remainder
+
+
 class AvbHeader:
     SIZE = 256
     FLAG_DISABLE_VERITY = 0x1
@@ -47,13 +54,6 @@ class AvbHeader:
                            self.public_key_metadata_offset, self.public_key_metadata_size,
                            self.descriptors_offset, self.descriptors_size,
                            self.rollback_index, self.flags, self.rollback_index_location, release_string_encoded)
-
-
-def round_to_multiple(number, size):
-    remainder = number % size
-    if remainder == 0:
-        return number
-    return number + size - remainder
 
 
 class AvbDescriptor:
@@ -186,7 +186,6 @@ def patch(vbmeta_file: str, boot_file: str):
 
     # Allow rollback
     avb.header.rollback_index = 0
-
     # Disable verity and verification
     avb.header.flags = AvbHeader.FLAG_DISABLE_VERITY | AvbHeader.FLAG_DISABLE_VERIFICATION
 
@@ -203,17 +202,17 @@ def patch(vbmeta_file: str, boot_file: str):
                 case 'com.android.build.boot.security_patch':
                     avb.descriptors.insert(2, desc)
 
-    tmp = set()
-    for desc in list(avb.descriptors):
+    existing = set()
+    for desc in avb.descriptors[:]:
         # Remove chain, hash and hashtree descriptors
         if getattr(desc, 'tag', -1) in (1, 2, 4):
             avb.descriptors.remove(desc)
         elif isinstance(desc, AvbPropertyDescriptor):
             # Remove duplicate property descriptors
-            if desc.key in tmp:
+            if desc.key in existing:
                 avb.descriptors.remove(desc)
             else:
-                tmp.add(desc.key)
+                existing.add(desc.key)
 
     with open(vbmeta_file, 'wb') as f:
         f.write(avb.encode())

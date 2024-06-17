@@ -29,7 +29,7 @@ class ApkFile:
                     return SmaliParser(assumed_path).smali_file
 
     def find_smali(self, *keywords: str):
-        results = []
+        results = set()
         # See: https://docs.python.org/3/using/windows.html#removing-the-max-path-limitation
         for file in glob(f'{self.output}/smali*/**/*.smali', recursive=True):
             keyword_set = set(keywords)
@@ -39,7 +39,7 @@ class ApkFile:
                         if keyword in line:
                             keyword_set.discard(keyword)
             if len(keyword_set) == 0:
-                results.append(SmaliParser(file).smali_file)
+                results.add(SmaliParser(file).smali_file)
         return results
 
     def get_version_code(self):

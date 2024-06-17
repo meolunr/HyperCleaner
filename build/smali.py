@@ -13,30 +13,30 @@ class MethodSpecifier:
         self.name = None
         self.parameters = None
         self.return_type = None
-        self.keywords: list[str] = []
+        self.keywords: set[str] = set()
 
 
 class SmaliFile:
     def __init__(self, file: str):
         self.file = file
-        self._methods: list[MethodSpecifier] = []
+        self._methods: set[MethodSpecifier] = set()
         self._method_body = {}
 
     def add_method(self, specifier: MethodSpecifier, body: str):
-        self._methods.append(specifier)
+        self._methods.add(specifier)
         self._method_body[specifier] = body
 
     def find_method(self, specifier: MethodSpecifier) -> str:
-        conditions = [
+        conditions = {
             lambda x: True if specifier.name is None else x.name == specifier.name,
             lambda x: True if specifier.access is None else x.access == specifier.access,
             lambda x: True if specifier.is_static is None else x.is_static == specifier.is_static,
             lambda x: True if specifier.parameters is None else x.parameters == specifier.parameters,
             lambda x: True if specifier.return_type is None else x.return_type == specifier.return_type
-        ]
+        }
         results = self._methods
         for condition in conditions:
-            results = list(filter(condition, results))
+            results = set(filter(condition, results))
 
         if len(results) > 1 and len(specifier.keywords) == 0:
             return ''
@@ -45,7 +45,7 @@ class SmaliFile:
             body = self._method_body[item]
             return all(keyword in body for keyword in specifier.keywords)
 
-        results = list(filter(filter_keyword, results))
+        results = set(filter(filter_keyword, results))
         if len(results) == 1:
             return self._method_body[results[0]]
 

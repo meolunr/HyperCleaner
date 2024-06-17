@@ -2,7 +2,7 @@ REMOVE="
 $var_remove_oat"
 
 enforce_install_from_app() {
-	if [ ! $BOOTMODE ]; then
+	if ! $BOOTMODE; then
 		ui_print "*****************************************"
 		ui_print "! Install from recovery is NOT supported"
 		ui_print "! Please install from module manager app"
