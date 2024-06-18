@@ -286,6 +286,7 @@ def main():
     patch_vbmeta()
     disable_avb_and_dm_verity()
     handle_pangu_overlay()
+    appupdate.run_on_rom()
     customize.run()
     repack_img()
     repack_super()

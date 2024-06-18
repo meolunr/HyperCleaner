@@ -6,6 +6,7 @@ import shutil
 from enum import Enum, auto
 
 import config
+from build.apkfile import ApkFile
 from hcglobal import MISC_DIR, log
 from util import adb, template
 
@@ -149,12 +150,22 @@ def fetch_updated_app():
 
 
 def run_on_rom():
+    packages = set()
+
     for app in fetch_updated_app():
+        rom_apk_path = f'{app.system_path_rom}/{os.path.basename(app.system_path_rom)}.apk'
+        if app.version_code <= ApkFile(rom_apk_path).get_version_code():
+            # Xiaomi has updated the apk in ROM
+            continue
         log(f'更新系统应用: {app.system_path_rom}')
-        adb.pull(app.data_path, f'{app.system_path_rom}/{os.path.basename(app.system_path_rom)}.apk')
+        adb.pull(app.data_path, rom_apk_path)
+        packages.add(app.package)
+
         oat = f'{app.system_path_rom}/oat'
         if os.path.exists(oat):
             shutil.rmtree(oat)
+
+    write_record(rom=packages, module=set())
 
 
 def run_on_module():
