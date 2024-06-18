@@ -86,13 +86,13 @@ def read_record():
     return rom, module
 
 
-def write_record(rom: set = None, module: set = None):
+def write_record(*, rom: set = None, module: set = None):
     rom_to_be_written, module_to_be_written = read_record()
     log('写入系统应用更新记录')
     with open(RECORD_JSON, 'w+', encoding='utf-8', newline='\n') as f:
-        if rom:
+        if rom is not None:
             rom_to_be_written = rom
-        if module:
+        if module is not None:
             module_to_be_written = module
 
         # Move rom-record of the app that has been updated when building rom to module-record
