@@ -73,10 +73,12 @@ product/priv-app/GooglePlayServicesUpdater
 product/priv-app/MiGameCenterSDKService
 product/priv-app/MIUIAICR
 product/priv-app/MIUIBarrageV2
+product/priv-app/MIUIBarrage  # K70 Pro
 product/priv-app/MIUIBrowser
 product/priv-app/MIUIContentExtension
 product/priv-app/MIUIMirror
 product/priv-app/MIUIPersonalAssistantPhoneMIUI15
+product/priv-app/MIUIPersonalAssistantPhoneMIUI15NEW  # K70 Pro
 product/priv-app/MIUIQuickSearchBox
 product/priv-app/RegService
 product/priv-app/SettingsIntelligence

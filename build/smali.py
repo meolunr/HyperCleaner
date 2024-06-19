@@ -47,7 +47,7 @@ class SmaliFile:
 
         results = set(filter(filter_keyword, results))
         if len(results) == 1:
-            return self._method_body[results[0]]
+            return self._method_body[results.pop()]
 
     def method_replace(self, old_method: str | MethodSpecifier, new_body: str):
         if type(old_method) is MethodSpecifier:
