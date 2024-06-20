@@ -4,11 +4,11 @@ from io import BytesIO
 
 
 class Chunk:
-    CHUNK_HEADER_SIZE = 8
+    SIZE = 8
     __FORMAT_STRING = '<2HI'  # type, header size, size (chunk)
 
     def __init__(self, f: BytesIO):
-        (self.type, self.header_size, self.size) = struct.unpack(self.__FORMAT_STRING, f.read(self.CHUNK_HEADER_SIZE))
+        (self.type, self.header_size, self.size) = struct.unpack(self.__FORMAT_STRING, f.read(self.SIZE))
 
 
 class StringChunk(Chunk):
@@ -40,15 +40,19 @@ class StartNamespaceChunk(Chunk):
 
 
 class StartTagChunk(Chunk):
+    TYPE = 0x102
     __FORMAT_STRING = ('<2I'  # line number, comment
                        '2I'  # namespace uri, name
                        '3H'  # start, size, count (attribute)
                        '3H')  # id index, class index, style index
 
     class Attribute:
-        DATA_TYPE_STRING = 0x03
+        SIZE = 20
         __FORMAT_STRING = ('<3I'  # namespace uri, name, raw value
                            'H2BI')  # size, res0, data type, data
+        DATA_TYPE_REFERENCE = 0x01
+        DATA_TYPE_STRING = 0x03
+        DATA_TYPE_BOOLEAN = 0x12
 
         def __init__(self, f: BytesIO):
             buff = f.read(struct.calcsize(self.__FORMAT_STRING))
@@ -59,9 +63,11 @@ class StartTagChunk(Chunk):
         buff = f.read(struct.calcsize(self.__FORMAT_STRING))
         (_, _, self.namespace_uri, self.name, _, _, self.attribute_count, _, _, _) = struct.unpack(self.__FORMAT_STRING, buff)
 
-        self.attributes = []
+    def read_attribute(self, f: BytesIO):
+        attributes = []
         for i in range(self.attribute_count):
-            self.attributes.append(StartTagChunk.Attribute(f))
+            attributes.append(StartTagChunk.Attribute(f))
+        return attributes
 
 
 class ManifestXml:
@@ -69,27 +75,56 @@ class ManifestXml:
         self.attributes = {}
 
         with BytesIO(data) as f:
-            f.seek(Chunk.CHUNK_HEADER_SIZE)
+            f.seek(Chunk.SIZE)
             self.string_chunk = StringChunk(f)
             self._string_cache = {}
 
             # Skip resource map chunk
-            f.seek(Chunk(f).size - Chunk.CHUNK_HEADER_SIZE, os.SEEK_CUR)
+            f.seek(Chunk(f).size - Chunk.SIZE, os.SEEK_CUR)
 
             self.start_namespace_chunk = StartNamespaceChunk(f)
             self._namespace_map = {self.start_namespace_chunk.uri: self.start_namespace_chunk.prefix}
-            # Only the manifest tag is parsed because we only need attributes in it
-            self.manifest_chunk = StartTagChunk(f)
 
-        self._read_root_attributes()
+            length = len(data)
+            while f.tell() < length:
+                chunk = Chunk(f)
+                if chunk.type != StartTagChunk.TYPE:
+                    f.seek(chunk.size - Chunk.SIZE, os.SEEK_CUR)
+                    continue
 
-    def _read_root_attributes(self):
-        for attribute in self.manifest_chunk.attributes:
+                f.seek(-Chunk.SIZE, os.SEEK_CUR)
+                chunk = StartTagChunk(f)
+                name = self._get_string(chunk.name)
+                # Only manifest and application tag are parsed because we only need attributes in them
+                if name not in ('manifest', 'application'):
+                    # Skip attributes of start tag
+                    f.seek(chunk.attribute_count * StartTagChunk.Attribute.SIZE, os.SEEK_CUR)
+                    continue
+
+                attributes = chunk.read_attribute(f)
+                self._parse_attribute(name, attributes)
+
+    def _parse_attribute(self, name: str, attributes: list[StartTagChunk.Attribute]):
+        if name == 'manifest':
+            attribute_map = self.attributes
+        else:
+            attribute_map = {}
+            self.attributes[name] = attribute_map
+
+        for attribute in attributes:
+            # resources.arsc not parsed
+            if attribute.data_type == StartTagChunk.Attribute.DATA_TYPE_REFERENCE:
+                continue
+
             prefix = self._get_prefix(attribute.namespace_uri)
-            if attribute.data_type == StartTagChunk.Attribute.DATA_TYPE_STRING:
-                attribute.data = self._get_string(attribute.data)
+            match attribute.data_type:
+                case StartTagChunk.Attribute.DATA_TYPE_STRING:
+                    attribute.data = self._get_string(attribute.data)
+                case StartTagChunk.Attribute.DATA_TYPE_BOOLEAN:
+                    attribute.data = attribute.data != 0
+
             key = f'{prefix}{self._get_string(attribute.name)}'
-            self.attributes[key] = attribute.data
+            attribute_map[key] = attribute.data
 
     def _get_string(self, idx: int):
         if idx in self._string_cache:
