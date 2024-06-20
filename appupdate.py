@@ -3,11 +3,13 @@ import json
 import os
 import re
 import shutil
+import subprocess
 from enum import Enum, auto
+from zipfile import ZipFile
 
 import config
 from build.apkfile import ApkFile
-from hcglobal import MISC_DIR, log
+from hcglobal import LIB_DIR, MISC_DIR, log
 from util import adb, template
 
 RECORD_JSON = 'product/UpdatedApp.json'
@@ -25,6 +27,7 @@ class NewApp(object):
         self.system_path = system_path
         self.system_path_rom = self._combine_system_path(system_path, False)
         self.system_path_module = self._combine_system_path(system_path, True)
+        self.system_path_rom_with_apk = f'{self.system_path_rom}/{os.path.basename(self.system_path_rom)}.apk'
         self.source = None
         self.version_code = None
 
@@ -149,16 +152,29 @@ def fetch_updated_app():
     return app_map.values()
 
 
+def pull_apk_from_phone(app: NewApp):
+    adb.pull(app.data_path, app.system_path_rom_with_apk)
+
+    extract_lib = ApkFile(app.system_path_rom_with_apk).extract_native_libs()
+    if extract_lib is None:
+        with ZipFile(app.system_path_rom_with_apk) as f:
+            dirs = {x.split('/')[1] for x in f.namelist() if x.startswith('lib/')}
+            extract_lib = len(dirs) > 1
+
+    if extract_lib:
+        _7z = f'{LIB_DIR}/7za.exe'
+        subprocess.run(f'{_7z} e -aoa {app.system_path_rom_with_apk} lib/arm64-v8a -o{app.system_path_rom}/lib/arm64', stdout=subprocess.DEVNULL)
+
+
 def run_on_rom():
     packages = set()
 
     for app in fetch_updated_app():
-        rom_apk_path = f'{app.system_path_rom}/{os.path.basename(app.system_path_rom)}.apk'
-        if app.version_code <= ApkFile(rom_apk_path).get_version_code():
+        if app.version_code <= ApkFile(app.system_path_rom_with_apk).version_code():
             # Xiaomi has updated the apk in ROM
             continue
         log(f'更新系统应用: {app.system_path_rom}')
-        adb.pull(app.data_path, rom_apk_path)
+        pull_apk_from_phone(app)
         packages.add(app.package)
 
         oat = f'{app.system_path_rom}/oat'
@@ -178,7 +194,7 @@ def run_on_module():
     for app in apps:
         log(f'更新系统应用: {app.system_path_module}')
         os.makedirs(app.system_path_rom)
-        adb.pull(app.data_path, f'{app.system_path_rom}/{os.path.basename(app.system_path_rom)}.apk')
+        pull_apk_from_phone(app)
         packages.add(app.package)
         mount_output.write(f'mount -o bind $MODDIR/{app.system_path_module} {app.system_path}\n')
         remove_oat_output.write(f'/{app.system_path_module}/oat\n')

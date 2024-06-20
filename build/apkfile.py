@@ -12,6 +12,7 @@ class ApkFile:
     def __init__(self, file: str):
         self.file = file
         self.output = f'{self.file}.out'
+        self._manifest_attributes = None
 
     def decode(self, no_res=True):
         apktool.decode(self.file, self.output, no_res)
@@ -42,7 +43,18 @@ class ApkFile:
                 results.add(SmaliParser(file).smali_file)
         return results
 
-    def get_version_code(self):
+    def version_code(self):
+        if not self._manifest_attributes:
+            self._parse_manifest()
+        return self._manifest_attributes['android:versionCode']
+
+    def extract_native_libs(self) -> bool | None:
+        if not self._manifest_attributes:
+            self._parse_manifest()
+        attribute_map: dict = self._manifest_attributes['application']
+        return attribute_map.get('android:extractNativeLibs', None)
+
+    def _parse_manifest(self):
         with ZipFile(self.file, 'r') as zip_file:
             f = zip_file.open('AndroidManifest.xml', 'r')
-            return ManifestXml(f.read()).attributes['android:versionCode']
+            self._manifest_attributes = ManifestXml(f.read()).attributes
