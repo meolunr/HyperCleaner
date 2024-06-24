@@ -1,10 +1,10 @@
 #!/sbin/sh
 
-outFd=/proc/self/fd/$2
-zipFile="$3"
+TMPDIR=/tmp/hypercleaner
+ZIPFILE="$3"
 
 print() {
-	echo -e "ui_print $1\nui_print" >>$outFd
+	echo -e "ui_print $1\nui_print" >> /proc/self/fd/$2
 }
 
 waitForVolumeKey() {
@@ -24,12 +24,12 @@ waitForVolumeKey() {
 
 flash() {
 	print "- 正在刷入分区 $(echo $2 | cut -d '/' -f 6)"
-	unzip -p "$zipFile" $1 > $2
+	unzip -p $ZIPFILE $1 > $2
 }
 
 flashZstd() {
 	print "- 正在刷入分区 $(echo $2 | cut -d '/' -f 6)"
-	unzip -p "$zipFile" $1 | /tmp/hypercleaner/zstd -c -d > $2
+	unzip -p $ZIPFILE $1 | $TMPDIR/zstd -c -d > $2
 }
 
 remapSuper() {
@@ -40,29 +40,25 @@ remapSuper() {
 }
 
 lookupPackagePath() {
-	if [ -a /tmp/hypercleaner/PackagePath.txt ]; then
-		rm -f /tmp/hypercleaner/PackagePath.txt
-	fi
 	for i in $(ls /data/app); do
 		package=$(ls "/data/app/$i" | cut -d '-' -f 1)
-		echo "$package:/data/app/$i" >> /tmp/hypercleaner/PackagePath.txt
+		echo "$package:/data/app/$i" >> $TMPDIR/PackagePath.txt
 	done
 }
 
 removeDataApp() {
-	package=$(grep "^$1:" /tmp/hypercleaner/PackagePath.txt)
+	package=$(grep "^$1:" $TMPDIR/PackagePath.txt)
 	path=$(echo $package | cut -d ':' -f 2)
 	if [ -n "$path" ]; then
 		rm -rf "$path"
 	fi
 }
 
-if [ -d /tmp/hypercleaner ]; then
-	rm -rf /tmp/hypercleaner
-fi
-mkdir -p /tmp/hypercleaner
-unzip -j "$zipFile" META-INF/com/google/android/zstd -d /tmp/hypercleaner
-chmod -R 0755 /tmp/hypercleaner
+rm -rf $TMPDIR
+mkdir -p $TMPDIR
+
+unzip -j $ZIPFILE META-INF/com/google/android/zstd -d $TMPDIR
+chmod -R 0755 $TMPDIR
 
 device=$(getprop ro.product.name)
 print "=============================="
@@ -88,10 +84,10 @@ if [ "$device" != "$var_device" ]; then
 	fi
 fi
 
-if [ "$zipFile" != "/sideload/package.zip" ]; then
+if [ $ZIPFILE != "/sideload/package.zip" ]; then
 	print "- 正在校验 MD5"
-	romName=$(basename $zipFile)
-	hashA=$(md5sum $zipFile | head -c 10)
+	romName=$(basename $ZIPFILE)
+	hashA=$(md5sum $ZIPFILE | head -c 10)
 	hashB=$(echo $romName | cut -d '_' -f 4)
 
 	if [ "$hashA" != "$hashB" ]; then

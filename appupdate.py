@@ -167,21 +167,19 @@ def pull_apk_from_phone(app: NewApp):
 
 
 def run_on_rom():
-    packages = set()
-
     for app in fetch_updated_app():
         if app.version_code <= ApkFile(app.system_path_rom_with_apk).version_code():
             # Xiaomi has updated the apk in ROM
             continue
         log(f'更新系统应用: {app.system_path_rom}')
         pull_apk_from_phone(app)
-        packages.add(app.package)
+        config.remove_data_apps.add(app.package)
 
         oat = f'{app.system_path_rom}/oat'
         if os.path.exists(oat):
             shutil.rmtree(oat)
 
-    write_record(rom=packages, module=set())
+    write_record(rom=config.remove_data_apps, module=set())
 
 
 def run_on_module():
@@ -198,8 +196,7 @@ def run_on_module():
         packages.add(app.package)
         mount_output.write(f'mount -o bind $MODDIR/{app.system_path_module} {app.system_path}\n')
         remove_oat_output.write(f'/{app.system_path_module}/oat\n')
-        if app.source == NewApp.Source.DATA:
-            remove_data_app_output.write(f'removeDataApp {app.package}\n')
+        remove_data_app_output.write(f'removeDataApp {app.package}\n')
 
     write_record(module=packages)
     template.substitute(f'{MISC_DIR}/module_template/AppUpdate/post-fs-data.sh.bak', var_mount=mount_output.getvalue())

@@ -9,7 +9,7 @@ MODIFY_PACKAGE = (
 unpack_partitions = dict.fromkeys((
     'product', 'system', 'system_ext', 'vendor'
 ), None)
-remove_data_apps: [str] = []
+remove_data_apps: set[str] = set()
 device = ''
 version = ''
 sdk = 0
