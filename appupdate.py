@@ -38,6 +38,19 @@ class NewApp(object):
         return system_path[1:]
 
 
+def check_adb_device() -> bool:
+    lines = subprocess.run('adb devices', stdout=subprocess.PIPE).stdout.decode().strip().splitlines()
+    num = len(lines)
+    if num == 2:
+        return False
+    elif num < 2:
+        log('未检测到 adb 设备连接，不再进行系统应用更新')
+        return True
+    elif num > 2:
+        log('检测到多个 adb 设备连接，不再进行系统应用更新')
+        return True
+
+
 def get_app_in_data():
     path_map = {}
 
@@ -167,6 +180,8 @@ def pull_apk_from_phone(app: NewApp):
 
 
 def run_on_rom():
+    if check_adb_device():
+        return
     for app in fetch_updated_app():
         if app.version_code <= ApkFile(app.system_path_rom_with_apk).version_code():
             # Xiaomi has updated the apk in ROM
@@ -183,6 +198,8 @@ def run_on_rom():
 
 
 def run_on_module():
+    if check_adb_device():
+        return
     apps = {x for x in fetch_updated_app() if x.source != NewApp.Source.ROM and x.package in config.MODIFY_PACKAGE}
     packages = set()
     mount_output = io.StringIO()

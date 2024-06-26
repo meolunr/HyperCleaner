@@ -249,6 +249,9 @@ def make_update_module():
     os.chdir('out/appupdate')  # Temporary folder for testing
     appupdate.run_on_module()
 
+    if not os.path.isfile(appupdate.RECORD_JSON):
+        return
+
     # Let the module manager app handle partition path automatically
     for partition in config.unpack_partitions.keys():
         if partition != 'system' and os.path.isdir(partition):
