@@ -57,16 +57,12 @@ class AvbHeader:
 
 
 class AvbDescriptor:
-    _FORMAT_STRING = '!QQ'  # tag, num_bytes_following (descriptor header)
-    _SIZE = 16
+    _HEADER_SIZE = 16
+    _FORMAT_STRING = '!2Q'  # tag, num_bytes_following (descriptor header)
 
     def __init__(self, data):
-        if data:
-            (self.tag, num_bytes_following) = struct.unpack(self._FORMAT_STRING, data[0:self._SIZE])
-            self.data = data[self._SIZE:self._SIZE + num_bytes_following]
-        else:
-            self.tag = None
-            self.data = None
+        (self.tag, num_bytes_following) = struct.unpack(self._FORMAT_STRING, data[0:self._HEADER_SIZE])
+        self.data = data[self._HEADER_SIZE:self._HEADER_SIZE + num_bytes_following]
 
     def encode(self):
         num_bytes_following = len(self.data)
@@ -78,28 +74,23 @@ class AvbDescriptor:
         return bytearray(ret)
 
 
-class AvbPropertyDescriptor(AvbDescriptor):
+class AvbPropertyDescriptor:
     TAG = 0
-    _SIZE = 32
+    _HEADER_SIZE = 32
     _FORMAT_STRING = ('!QQ'  # tag, num_bytes_following (descriptor header)
                       'Q'  # key size (bytes)
                       'Q')  # value size (bytes)
 
-    def __init__(self, data=None):
-        super().__init__(None)
-        if data:
-            (tag, num_bytes_following, key_size, value_size) = struct.unpack(self._FORMAT_STRING, data[0:self._SIZE])
-            key_offset = self._SIZE
-            value_offset = key_offset + key_size + 1
-            self.key = data[key_offset:(key_offset + key_size)].decode('utf-8')
-            self.value = data[value_offset:value_offset + value_size]
-        else:
-            self.key = ''
-            self.value = b''
+    def __init__(self, data):
+        (tag, num_bytes_following, key_size, value_size) = struct.unpack(self._FORMAT_STRING, data[0:self._HEADER_SIZE])
+        key_offset = self._HEADER_SIZE
+        value_offset = key_offset + key_size + 1
+        self.key = data[key_offset:(key_offset + key_size)].decode('utf-8')
+        self.value = data[value_offset:value_offset + value_size]
 
     def encode(self):
         key_encoded = self.key.encode('utf-8')
-        num_bytes_following = (self._SIZE + len(key_encoded) + len(self.value) + 2 - 16)
+        num_bytes_following = (self._HEADER_SIZE + len(key_encoded) + len(self.value) + 2 - 16)
         nbf_with_padding = round_to_multiple(num_bytes_following, 8)
         padding_size = nbf_with_padding - num_bytes_following
         desc = struct.pack(self._FORMAT_STRING, self.TAG, nbf_with_padding, len(key_encoded), len(self.value))
@@ -107,7 +98,6 @@ class AvbPropertyDescriptor(AvbDescriptor):
 
 
 class VbMeta:
-
     def __init__(self, file: str):
         self.file = file
         self._image_size = os.path.getsize(file)
@@ -123,6 +113,10 @@ class VbMeta:
             aux_block_offset = vbmeta_offset + AvbHeader.SIZE + self.header.authentication_data_block_size
             desc_start_offset = aux_block_offset + self.header.descriptors_offset
             self._read_descriptors(desc_start_offset)
+
+    def write(self):
+        with open(self.file, 'wb') as f:
+            f.write(self._encode())
 
     def _read_header(self, offset):
         self._image.seek(offset)
@@ -144,7 +138,7 @@ class VbMeta:
             self.descriptors.append(clazz(data[desc_offset:desc_offset + 16 + nb_following]))
             desc_offset += 16 + nb_following
 
-    def encode(self):
+    def _encode(self):
         aux_data_blob = bytearray()
         for desc in self.descriptors:
             aux_data_blob.extend(desc.encode())
@@ -214,5 +208,4 @@ def patch(vbmeta_file: str, boot_file: str):
             else:
                 existing.add(desc.key)
 
-    with open(vbmeta_file, 'wb') as f:
-        f.write(avb.encode())
+    avb.write()
