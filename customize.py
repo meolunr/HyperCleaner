@@ -3,10 +3,31 @@ import re
 import shutil
 import sys
 from glob import glob
+from zipfile import ZipFile
 
 from build.apkfile import ApkFile
 from build.smali import MethodSpecifier
 from hcglobal import MISC_DIR, log
+
+_MODIFIED_FLAG = b'HC-Mod'
+
+
+def modified(file: str):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            f = ZipFile(file, 'r')
+            comment = f.comment
+            f.close()
+
+            if comment != _MODIFIED_FLAG:
+                result = func(*args, **kwargs)
+                with ZipFile(file, 'a') as f:
+                    f.comment = _MODIFIED_FLAG
+                return result
+
+        return wrapper
+
+    return decorator
 
 
 def rm_files():
@@ -83,12 +104,14 @@ def disable_wake_path_dialog():
 
 
 def run():
+def run_on_rom():
     rm_files()
     replace_analytics()
     remove_system_signature_check()
     disable_wake_path_dialog()
 
 
+def run_on_module():
 # Unused Code ==================================================================================
 # SecurityCenter
 def disable_wifi_blocked_notification(apk_file: ApkFile):

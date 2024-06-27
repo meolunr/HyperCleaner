@@ -248,9 +248,9 @@ def make_update_module():
     log('构建系统应用更新模块')
     os.chdir('out/appupdate')  # Temporary folder for testing
     appupdate.run_on_module()
-
     if not os.path.isfile(appupdate.RECORD_JSON):
         return
+    customize.run_on_module()
 
     # Let the module manager app handle partition path automatically
     for partition in config.unpack_partitions.keys():
@@ -290,7 +290,7 @@ def main():
     disable_avb_and_dm_verity()
     handle_pangu_overlay()
     appupdate.run_on_rom()
-    customize.run()
+    customize.run_on_rom()
     repack_img()
     repack_super()
     generate_script()
