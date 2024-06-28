@@ -3,7 +3,7 @@ import shutil
 from glob import glob
 from zipfile import ZipFile
 
-from util import apktool
+from util import apktool, apkeditor
 from .axml import ManifestXml
 from .smaliparser import SmaliParser
 
@@ -12,13 +12,21 @@ class ApkFile:
     def __init__(self, file: str):
         self.file = file
         self.output = f'{self.file}.out'
+        self._use_apk_editor = False
         self._manifest_attributes = None
 
     def decode(self, no_res=True):
-        apktool.decode(self.file, self.output, no_res)
+        self._use_apk_editor = not no_res
+        if self._use_apk_editor:
+            apkeditor.decode(self.file, self.output)
+        else:
+            apktool.decode(self.file, self.output, no_res)
 
     def build(self, copy_original=True):
-        apktool.build(self.output, copy_original)
+        if self._use_apk_editor:
+            apkeditor.build(self.output)
+        else:
+            apktool.build(self.output, copy_original)
         apktool.zipalign(f'{self.output}/dist/{os.path.basename(self.file)}', self.file)
         shutil.rmtree(self.output)
 
