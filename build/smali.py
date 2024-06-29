@@ -10,6 +10,7 @@ class MethodSpecifier:
     def __init__(self):
         self.access = None
         self.is_static = None
+        self.is_final = None
         self.name = None
         self.parameters = None
         self.return_type = None
@@ -31,6 +32,7 @@ class SmaliFile:
             lambda x: True if specifier.name is None else x.name == specifier.name,
             lambda x: True if specifier.access is None else x.access == specifier.access,
             lambda x: True if specifier.is_static is None else x.is_static == specifier.is_static,
+            lambda x: True if specifier.is_final is None else x.is_final == specifier.is_final,
             lambda x: True if specifier.parameters is None else x.parameters == specifier.parameters,
             lambda x: True if specifier.return_type is None else x.return_type == specifier.return_type
         }
