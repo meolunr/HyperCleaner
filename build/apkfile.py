@@ -24,18 +24,21 @@ class ApkFile:
 
     def build(self, copy_original=True):
         if self._use_apk_editor:
-            apkeditor.build(self.output)
+            apkeditor.build(self.output, self.file)
         else:
             apktool.build(self.output, copy_original)
-        apktool.zipalign(f'{self.output}/dist/{os.path.basename(self.file)}', self.file)
+            apktool.zipalign(f'{self.output}/dist/{os.path.basename(self.file)}', self.file)
         shutil.rmtree(self.output)
 
     def open_smali(self, file: str):
-        for dir_name in os.listdir(self.output):
-            if dir_name.startswith('smali'):
-                assumed_path = f'{self.output}/{dir_name}/{file}'
-                if os.path.exists(assumed_path):
-                    return SmaliParser(assumed_path).smali_file
+        if self._use_apk_editor:
+            dirs = set(map(lambda x: f'smali/{x}', os.listdir(f'{self.output}/smali')))
+        else:
+            dirs = set(filter(lambda x: x.startswith('smali'), os.listdir(self.output)))
+        for dir_name in dirs:
+            assumed_path = f'{self.output}/{dir_name}/{file}'
+            if os.path.exists(assumed_path):
+                return SmaliParser(assumed_path).smali_file
 
     def find_smali(self, *keywords: str):
         results = set()
