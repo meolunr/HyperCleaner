@@ -6,6 +6,7 @@ from zipfile import ZipFile
 from util import apktool, apkeditor
 from .axml import ManifestXml
 from .smaliparser import SmaliParser
+from .xml import XmlFile
 
 
 class ApkFile:
@@ -59,6 +60,9 @@ class ApkFile:
             if len(keyword_set) == 0:
                 results.add(SmaliParser(file).smali_file)
         return results
+
+    def open_xml(self, file: str):
+        return XmlFile(f'{self.output}/resources/package_1/res/{file}')
 
     def version_code(self):
         if not self._manifest_attributes:
