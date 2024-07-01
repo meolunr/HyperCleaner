@@ -9,3 +9,7 @@ def decode(file: str, output: str):
 
 def build(dir_path: str, output: str):
     subprocess.run(f'java -jar {LIB_DIR}/APKEditor.jar b -f -i {dir_path} -o {output}', stderr=subprocess.STDOUT)
+
+
+def refactor(file: str, output: str):
+    subprocess.run(f'java -jar {LIB_DIR}/APKEditor.jar x -i {file} -o {output}', stderr=subprocess.STDOUT)

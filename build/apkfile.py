@@ -30,6 +30,12 @@ class ApkFile:
             apktool.zipalign(f'{self.output}/dist/{os.path.basename(self.file)}', self.file)
         shutil.rmtree(self.output)
 
+    def refactor(self):
+        old_file = f'{self.file}.old'
+        os.rename(self.file, old_file)
+        apkeditor.refactor(old_file, self.file)
+        os.remove(old_file)
+
     def open_smali(self, file: str):
         if self._use_apk_editor:
             dirs = set(map(lambda x: f'smali/{x}', os.listdir(f'{self.output}/smali')))
