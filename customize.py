@@ -103,15 +103,63 @@ def disable_wake_path_dialog():
             os.remove(file)
 
 
-def run():
+@modified('product/priv-app/MIUIPackageInstaller/MIUIPackageInstaller.apk')
+def patch_package_installer():
+    apk = ApkFile('product/priv-app/MIUIPackageInstaller/MIUIPackageInstaller.apk')
+    apk.refactor()
+    apk.decode(False)
+
+    # Remove ads
+    smali = apk.open_smali('com/miui/packageInstaller/model/ApkInfo.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'getSystemApp'
+    smali.method_return_boolean(specifier, True)
+
+    # Disable ads switch by default
+    specifier = MethodSpecifier()
+    specifier.return_type = 'Z'
+    specifier.keywords.add('"ads_enable"')
+    for smali in apk.find_smali('"ads_enable"'):
+        smali.method_return_boolean(specifier, False)
+
+    # Allow installation of system applications
+    specifier = MethodSpecifier()
+    specifier.parameters = 'Landroid/content/Context;Ljava/lang/String;'
+    specifier.return_type = 'Z'
+    specifier.keywords.add('getApplicationInfo')
+    for smali in apk.find_smali('"PackageUtil"'):
+        smali.method_return_boolean(specifier, False)
+
+    # Hide ads switch
+    xml = apk.open_xml('xml/settings.xml')
+    for element in xml.get_root().findall('miuix.preference.CheckBoxPreference'):
+        if element.get(xml.make_attr_key('android:key')) == 'pref_key_open_ads':
+            element.set(xml.make_attr_key('app:isPreferenceVisible'), 'false')
+    xml.commit()
+
+    # Hide feedback button
+    xml = apk.open_xml('menu/full_safe_installer_prepare_action_bar.xml')
+    group_tree = xml.get_root().find('group')
+    for element in group_tree.findall('item'):
+        if element.get(xml.make_attr_key('android:id')) == '@id/feedback':
+            group_tree.remove(element)
+    xml.commit()
+
+    apk.build()
+
+
 def run_on_rom():
     rm_files()
     replace_analytics()
     remove_system_signature_check()
     disable_wake_path_dialog()
+    patch_package_installer()
 
 
 def run_on_module():
+    patch_package_installer()
+
+
 # Unused Code ==================================================================================
 # SecurityCenter
 def disable_wifi_blocked_notification(apk_file: ApkFile):
@@ -153,7 +201,7 @@ def global_maximum_fps(apk_file: ApkFile):
 
 
 # Joyose
-def process_joyose():
+def joyose():
     apk_file = ApkFile('Joyose.apk')
     apk_file.decode()
 
@@ -164,7 +212,7 @@ def process_joyose():
 
 
 # MiuiSystemUI
-def process_systemui():
+def systemui():
     apk_file = ApkFile('MiuiSystemUI.apk')
     apk_file.decode()
 

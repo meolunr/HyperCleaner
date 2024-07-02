@@ -19,7 +19,7 @@ class XmlFile:
         return self._tree.getroot()
 
     def commit(self):
-        self._tree.write(self.file)
+        self._tree.write(self.file, 'utf-8')
 
     @staticmethod
     def make_attr_key(key: str):
