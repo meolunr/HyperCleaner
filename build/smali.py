@@ -2,33 +2,38 @@ import re
 from enum import Enum
 
 
-class MethodSpecifier:
+class Method:
     class Access(Enum):
         PUBLIC = 'public'
         PROTECTED = 'protected'
         PRIVATE = 'private'
 
     def __init__(self):
+        self.name = None
         self.access = None
         self.is_static = None
         self.is_final = None
-        self.name = None
         self.parameters = None
         self.return_type = None
         self.keywords: set[str] = set()
-        self.invoke_methods: set[MethodSpecifier | str] = set()
+        self.invoke_methods: set[str] = set()
+
+
+class MethodSpecifier(Method):
+    def __init__(self):
+        super().__init__()
+        self.invoke_methods: set[MethodSpecifier] = set()
 
 
 class SmaliFile:
-    def __init__(self, file: str):
+    def __init__(self, file: str, apk):
         self.file = file
-        self._methods: dict[MethodSpecifier:str] = {}
-
-        with open(file, 'r', encoding='utf-8') as file:
-            self._parse_method(file.read())
+        self._apk = apk
+        self._methods: dict[Method:str] = {}
 
     def find_method(self, specifier: MethodSpecifier) -> str:
-        conditions = {
+        results = self._methods.keys()
+        basic_conditions = {
             lambda x: True if specifier.name is None else x.name == specifier.name,
             lambda x: True if specifier.access is None else x.access == specifier.access,
             lambda x: True if specifier.is_static is None else x.is_static == specifier.is_static,
@@ -36,18 +41,14 @@ class SmaliFile:
             lambda x: True if specifier.parameters is None else x.parameters == specifier.parameters,
             lambda x: True if specifier.return_type is None else x.return_type == specifier.return_type
         }
-        results = self._methods.keys()
-        for condition in conditions:
+        for condition in basic_conditions:
             results = set(filter(condition, results))
 
-        if len(results) > 1 and len(specifier.keywords) == 0:
-            return ''
+        if specifier.keywords:
+            results = set(filter(self._filter_keyword(specifier.keywords), results))
+        if specifier.invoke_methods:
+            results = set(filter(self._filter_invoke_methods(specifier.invoke_methods), results))
 
-        def filter_keyword(item: MethodSpecifier):
-            body = self._methods[item]
-            return all(keyword in body for keyword in specifier.keywords)
-
-        results = set(filter(filter_keyword, results))
         if len(results) == 1:
             return self._methods[results.pop()]
 
@@ -82,25 +83,70 @@ class SmaliFile:
         '''
         self.method_replace(old_body, new_body)
 
-    def _parse_method(self, content: str):
-        pattern = re.compile(r'((\.method.+?)\n.+?\.end method)', re.DOTALL)
-        method_pattern = re.compile(r'\.method (public|protected|private)(?: static)?(?: final)? (\w+?)\((\S*?)\)(\S+?)')
-        invoke_pattern = re.compile(r'invoke-(?:virtual|static) \{.*?}, L(.+?)\n', re.DOTALL)
-
+    def parse_all_methods(self):
+        pattern = re.compile(r'\.method.+?\n.+?\.end method', re.DOTALL)
+        with open(self.file, 'r', encoding='utf-8') as f:
+            content = f.read()
         for item in pattern.findall(content):
-            method_defines = method_pattern.findall(item[1])
-            # Skip constructor methods
-            if len(method_defines) == 0:
-                continue
-            method_defines = method_defines[0]
+            self._add_method(item)
 
-            specifier = MethodSpecifier()
-            specifier.access = MethodSpecifier.Access(method_defines[0])
-            specifier.is_static = ' static ' in item[1]
-            specifier.is_final = ' final ' in item[1]
-            specifier.name = method_defines[1]
-            specifier.parameters = method_defines[2]
-            specifier.return_type = method_defines[3]
-            specifier.invoke_methods = set(invoke_pattern.findall(item[0]))
+    def parse_method(self, content: str):
+        pattern = re.compile(fr'\.method[^\n|.]+? {re.escape(content)}\n.+?\.end method', re.DOTALL)
+        with open(self.file, 'r', encoding='utf-8') as f:
+            content = f.read()
+        method_defines = pattern.findall(content)
+        self._add_method(method_defines[0])
 
-            self._methods[specifier] = item[0]
+    def _add_method(self, content: str):
+        method_pattern = re.compile(r'(\.method (public|protected|private)(?: static)?(?: final)? (\w+?)\((\S*?)\)(\S+))\n')
+        invoke_pattern = re.compile(r'invoke-(?:direct|virtual|static) \{.*?}, L(\S+?)\n', re.DOTALL)
+
+        method_defines = method_pattern.findall(content)
+        # Skip constructor methods
+        if len(method_defines) == 0:
+            return
+        method_defines = method_defines[0]
+
+        method = Method()
+        method.access = MethodSpecifier.Access(method_defines[1])
+        method.is_static = ' static ' in method_defines[0]
+        method.is_final = ' final ' in method_defines[0]
+        method.name = method_defines[2]
+        method.parameters = method_defines[3]
+        method.return_type = method_defines[4]
+        method.invoke_methods.update(invoke_pattern.findall(content))
+
+        self._methods[method] = content
+
+    def _filter_keyword(self, keywords):
+        def condition(method: Method):
+            body = self._methods[method]
+            return all(x in body for x in keywords)
+
+        return condition
+
+    def _filter_invoke_methods(self, invoke_specifiers):
+        pattern = re.compile(r'(.+?);->(.+)')
+
+        def condition(method: Method):
+            cache = {}
+            for invoke_method in method.invoke_methods:
+                method_defines = pattern.findall(invoke_method)[0]
+                class_type_name = method_defines[0]
+                method_signature = method_defines[1]
+
+                if class_type_name in cache:
+                    smali: SmaliFile = cache[class_type_name]
+                else:
+                    smali: SmaliFile = self._apk.open_smali(f'{class_type_name}.smali', auto_parse=False)
+                    cache[class_type_name] = smali
+                if not smali:
+                    continue
+
+                smali.parse_method(method_signature)
+                if any(smali.find_method(specifier) for specifier in invoke_specifiers):
+                    return True
+
+            return False
+
+        return condition
