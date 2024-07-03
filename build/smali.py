@@ -1,3 +1,4 @@
+import re
 from enum import Enum
 
 
@@ -15,17 +16,16 @@ class MethodSpecifier:
         self.parameters = None
         self.return_type = None
         self.keywords: set[str] = set()
+        self.invoke_methods: set[MethodSpecifier | str] = set()
 
 
 class SmaliFile:
     def __init__(self, file: str):
         self.file = file
-        self._methods: set[MethodSpecifier] = set()
-        self._method_body = {}
+        self._methods: dict[MethodSpecifier:str] = {}
 
-    def add_method(self, specifier: MethodSpecifier, body: str):
-        self._methods.add(specifier)
-        self._method_body[specifier] = body
+        with open(file, 'r', encoding='utf-8') as file:
+            self._parse_method(file.read())
 
     def find_method(self, specifier: MethodSpecifier) -> str:
         conditions = {
@@ -36,7 +36,7 @@ class SmaliFile:
             lambda x: True if specifier.parameters is None else x.parameters == specifier.parameters,
             lambda x: True if specifier.return_type is None else x.return_type == specifier.return_type
         }
-        results = self._methods
+        results = self._methods.keys()
         for condition in conditions:
             results = set(filter(condition, results))
 
@@ -44,12 +44,12 @@ class SmaliFile:
             return ''
 
         def filter_keyword(item: MethodSpecifier):
-            body = self._method_body[item]
+            body = self._methods[item]
             return all(keyword in body for keyword in specifier.keywords)
 
         results = set(filter(filter_keyword, results))
         if len(results) == 1:
-            return self._method_body[results.pop()]
+            return self._methods[results.pop()]
 
     def method_replace(self, old_method: str | MethodSpecifier, new_body: str):
         if type(old_method) is MethodSpecifier:
@@ -81,3 +81,26 @@ class SmaliFile:
 .end method\
         '''
         self.method_replace(old_body, new_body)
+
+    def _parse_method(self, content: str):
+        pattern = re.compile(r'((\.method.+?)\n.+?\.end method)', re.DOTALL)
+        method_pattern = re.compile(r'\.method (public|protected|private)(?: static)?(?: final)? (\w+?)\((\S*?)\)(\S+?)')
+        invoke_pattern = re.compile(r'invoke-(?:virtual|static) \{.*?}, L(.+?)\n', re.DOTALL)
+
+        for item in pattern.findall(content):
+            method_defines = method_pattern.findall(item[1])
+            # Skip constructor methods
+            if len(method_defines) == 0:
+                continue
+            method_defines = method_defines[0]
+
+            specifier = MethodSpecifier()
+            specifier.access = MethodSpecifier.Access(method_defines[0])
+            specifier.is_static = ' static ' in item[1]
+            specifier.is_final = ' final ' in item[1]
+            specifier.name = method_defines[1]
+            specifier.parameters = method_defines[2]
+            specifier.return_type = method_defines[3]
+            specifier.invoke_methods = set(invoke_pattern.findall(item[0]))
+
+            self._methods[specifier] = item[0]

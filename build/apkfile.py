@@ -5,7 +5,7 @@ from zipfile import ZipFile
 
 from util import apktool, apkeditor
 from .axml import ManifestXml
-from .smaliparser import SmaliParser
+from .smali import SmaliFile
 from .xml import XmlFile
 
 
@@ -45,7 +45,7 @@ class ApkFile:
         for dir_name in dirs:
             assumed_path = f'{self.output}/{dir_name}/{file}'
             if os.path.exists(assumed_path):
-                return SmaliParser(assumed_path).smali_file
+                return SmaliFile(assumed_path)
 
     def find_smali(self, *keywords: str):
         results = set()
@@ -58,7 +58,7 @@ class ApkFile:
                         if keyword in line:
                             keyword_set.discard(keyword)
             if len(keyword_set) == 0:
-                results.add(SmaliParser(file).smali_file)
+                results.add(SmaliFile(file))
         return results
 
     def open_xml(self, file: str):
