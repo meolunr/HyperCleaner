@@ -110,6 +110,7 @@ def disable_wake_path_dialog():
 
 @modified('product/priv-app/MIUIPackageInstaller/MIUIPackageInstaller.apk')
 def patch_package_installer():
+    log('净化应用包管理组件')
     apk = ApkFile('product/priv-app/MIUIPackageInstaller/MIUIPackageInstaller.apk')
     apk.refactor()
     apk.decode(False)
