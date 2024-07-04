@@ -21,8 +21,13 @@ def modified(file: str):
 
             if comment != _MODIFIED_FLAG:
                 result = func(*args, **kwargs)
+
                 with ZipFile(file, 'a') as f:
                     f.comment = _MODIFIED_FLAG
+                oat = f'{os.path.dirname(file)}/oat'
+                if os.path.exists(oat):
+                    shutil.rmtree(oat)
+
                 return result
 
         return wrapper
