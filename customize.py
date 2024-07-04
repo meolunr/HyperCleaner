@@ -130,10 +130,27 @@ def patch_package_installer():
     for smali in apk.find_smali('"PackageUtil"'):
         smali.method_return_boolean(specifier, False)
 
-    # Hide ads switch
+    # Turn on the safe mode UI without enabling its features
+    invoke_specifier = MethodSpecifier()
+    invoke_specifier.parameters = 'Landroid/content/Context;'
+    invoke_specifier.return_type = 'Z'
+    invoke_specifier.keywords.add('"safe_mode_is_open_cloud_config"')
+
+    specifier = MethodSpecifier()
+    specifier.parameters = ''
+    specifier.return_type = 'Z'
+    specifier.invoke_methods.add(invoke_specifier)
+    for smali in apk.find_smali('"FullSafeHelper"'):
+        smali.method_return_boolean(specifier, True)
+
+    # Hide outdated switches
     xml = apk.open_xml('xml/settings.xml')
-    for element in xml.get_root().findall('miuix.preference.CheckBoxPreference'):
+    root = xml.get_root()
+    for element in root.findall('miuix.preference.CheckBoxPreference'):
         if element.get(xml.make_attr_key('android:key')) == 'pref_key_open_ads':
+            element.set(xml.make_attr_key('app:isPreferenceVisible'), 'false')
+    for element in root.findall('miuix.preference.TextPreference'):
+        if element.get(xml.make_attr_key('android:key')) == 'pref_key_security_mode_security_verify_risk_app':
             element.set(xml.make_attr_key('app:isPreferenceVisible'), 'false')
     xml.commit()
 
@@ -197,17 +214,6 @@ def global_maximum_fps(apk_file: ApkFile):
     specifier = MethodSpecifier()
     specifier.name = 'setScreenEffect'
     specifier.parameters = 'Ljava/lang/String;II'
-    smali_file.method_nop(specifier)
-
-
-# Joyose
-def joyose():
-    apk_file = ApkFile('Joyose.apk')
-    apk_file.decode()
-
-    smali_file = apk_file.find_smali('allow connect:')
-    specifier = MethodSpecifier()
-    specifier.keywords.append('allow connect:')
     smali_file.method_nop(specifier)
 
 
