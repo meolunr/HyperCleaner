@@ -3,8 +3,8 @@ import subprocess
 from hcglobal import LIB_DIR
 
 
-def decode(file: str, output: str):
-    subprocess.run(f'java -jar {LIB_DIR}/APKEditor.jar d -i {file} -o {output}', stderr=subprocess.STDOUT)
+def decode(file: str, output: str, resource_type: str = 'xml'):
+    subprocess.run(f'java -jar {LIB_DIR}/APKEditor.jar d -t {resource_type} -i {file} -o {output}', stderr=subprocess.STDOUT)
 
 
 def build(dir_path: str, output: str):

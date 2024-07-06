@@ -3,7 +3,7 @@ import shutil
 from glob import glob
 from zipfile import ZipFile
 
-from util import apktool, apkeditor
+from util import apkeditor
 from .axml import ManifestXml
 from .smali import SmaliFile
 from .xml import XmlFile
@@ -13,22 +13,16 @@ class ApkFile:
     def __init__(self, file: str):
         self.file = file
         self.output = f'{self.file}.out'
-        self._use_apk_editor = False
         self._manifest_attributes = None
 
     def decode(self, no_res=True):
-        self._use_apk_editor = not no_res
-        if self._use_apk_editor:
+        if no_res:
+            apkeditor.decode(self.file, self.output, 'raw')
+        else:
             apkeditor.decode(self.file, self.output)
-        else:
-            apktool.decode(self.file, self.output, no_res)
 
-    def build(self, copy_original=True):
-        if self._use_apk_editor:
-            apkeditor.build(self.output, self.file)
-        else:
-            apktool.build(self.output, copy_original)
-            apktool.zipalign(f'{self.output}/dist/{os.path.basename(self.file)}', self.file)
+    def build(self):
+        apkeditor.build(self.output, self.file)
         shutil.rmtree(self.output)
 
     def refactor(self):
@@ -38,10 +32,7 @@ class ApkFile:
         os.remove(old_file)
 
     def open_smali(self, file: str, *, auto_parse=True):
-        if self._use_apk_editor:
-            dirs = set(map(lambda x: f'smali/{x}', os.listdir(f'{self.output}/smali')))
-        else:
-            dirs = set(filter(lambda x: x.startswith('smali'), os.listdir(self.output)))
+        dirs = set(map(lambda x: f'smali/{x}', os.listdir(f'{self.output}/smali')))
         for dir_name in dirs:
             assumed_path = f'{self.output}/{dir_name}/{file}'
             if os.path.exists(assumed_path):
