@@ -195,6 +195,10 @@ def run_on_rom():
             shutil.rmtree(oat)
 
     write_record(rom=config.remove_data_apps, module=set())
+    with open('config/product_fs_config', 'a') as f:
+        f.write(f'{RECORD_JSON} 0 0 0644\n')
+    with open('config/product_file_contexts', 'a') as f:
+        f.write('/product/UpdatedApp\\.json u:object_r:system_file:s0\n')
 
 
 def run_on_module():
