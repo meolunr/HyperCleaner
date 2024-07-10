@@ -20,7 +20,7 @@ from util import imgfile, template
 def unzip(file: str):
     log(f'解压 {file}')
     _7z = f'{LIB_DIR}/7za.exe'
-    subprocess.run(f'{_7z} e {file} payload.bin -oout', check=True)
+    subprocess.run(f'{_7z} e {file} payload.bin', check=True)
 
 
 def dump_payload():
@@ -37,15 +37,13 @@ def remove_official_recovery():
 
 
 def unpack_img():
-    for partition in config.unpack_partitions.keys():
-        config.unpack_partitions[partition] = imgfile.file_system(f'images/{partition}.img')
-
     extract_erofs = f'{LIB_DIR}/extract.erofs.exe'
     magiskboot = f'{LIB_DIR}/magiskboot.exe'
 
-    for partition, filesystem in config.unpack_partitions.items():
+    for partition in config.unpack_partitions:
         img = f'{partition}.img'
         file = f'images/{img}'
+        filesystem = imgfile.file_system(file)
         log(f'提取分区文件: {img}, 格式: {filesystem}')
         match filesystem:
             case imgfile.FileSystem.EROFS:
@@ -136,10 +134,10 @@ def repack_img():
     mkfs_erofs = f'{LIB_DIR}/mkfs.erofs.exe'
     magiskboot = f'{LIB_DIR}/magiskboot.exe'
 
-    for partition, filesystem in config.unpack_partitions.items():
+    for partition in config.unpack_partitions:
         log(f'打包分区文件: {partition}')
         file = f'images/{partition}.img'
-        match filesystem:
+        match imgfile.file_system(file):
             case imgfile.FileSystem.EROFS:
                 fs_config = f'config/{partition}_fs_config'
                 contexts = f'config/{partition}_file_contexts'
@@ -246,14 +244,14 @@ def compress_zip():
 
 def make_update_module():
     log('构建系统应用更新模块')
-    os.chdir('out/appupdate')  # Temporary folder for testing
+    os.chdir('appupdate')  # Temporary folder for testing
     appupdate.run_on_module()
     if not os.path.isfile(appupdate.RECORD_JSON):
         return
     customize.run_on_module()
 
     # Let the module manager app handle partition path automatically
-    for partition in config.unpack_partitions.keys():
+    for partition in config.unpack_partitions:
         if partition != 'system' and os.path.isdir(partition):
             shutil.move(partition, f'system/{partition}')
 
@@ -263,24 +261,9 @@ def make_update_module():
     subprocess.run(f'{_7z} a HC_AppUpdate_{version_code}.zip {' '.join(os.listdir())}', check=True)
 
 
-def main():
-    parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument('zip', help='需要处理的 ROM 包')
-    parser.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS, help='显示帮助信息')
-    parser.add_argument('-k', '--kernel', help='自定义内核镜像')
-    parser.add_subparsers().add_parser('appupdate', help='打包系统应用更新模块')
-    args = parser.parse_args()
-
-    if args.zip == 'appupdate':
-        make_update_module()
-        return
-
-    if args.kernel:
-        config.unpack_partitions['boot'] = None
-
-    start = datetime.now()
+def make_rom(args: argparse.Namespace):
+    log('构建全量包')
     unzip(args.zip)
-    os.chdir('out')
     dump_payload()
     remove_official_recovery()
     unpack_img()
@@ -295,6 +278,26 @@ def main():
     repack_super()
     generate_script()
     compress_zip()
+
+
+def main():
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument('zip', help='需要处理的 ROM 包')
+    parser.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS, help='显示帮助信息')
+    parser.add_argument('-k', '--kernel', help='自定义内核镜像')
+    parser.add_subparsers().add_parser('appupdate', help='打包系统应用更新模块')
+    args = parser.parse_args()
+
+    os.mkdir('out')
+    os.chdir('out')
+
+    start = datetime.now()
+    if args.zip != 'appupdate':
+        if args.kernel:
+            config.unpack_partitions.add('boot')
+        make_rom(args)
+    else:
+        make_update_module()
     result = datetime.now() - start
     log(f'已完成, 耗时 {int(result.seconds / 60)} 分 {result.seconds % 60} 秒')
 
