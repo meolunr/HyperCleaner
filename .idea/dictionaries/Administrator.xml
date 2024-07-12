@@ -10,6 +10,7 @@
       <w>magiskboot</w>
       <w>mkfs</w>
       <w>mknod</w>
+      <w>priv</w>
       <w>vbmeta</w>
       <w>versioncode</w>
     </words>

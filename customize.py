@@ -189,29 +189,29 @@ def patch_theme_manager():
 
     old_body = smali.find_method(specifier)
     pattern = '''\
-        :goto_(\\d)
-        invoke-interface {[v|p]\\d}, Ljava/util/Iterator;->hasNext\\(\\)Z
-    '''
+    :goto_(\\d)
+    invoke-interface {[v|p]\\d}, Ljava/util/Iterator;->hasNext\\(\\)Z
+'''
     match = re.search(pattern, old_body)
     goto = match.group(1)
     pattern = '''\
-        check-cast v(\\d), Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;
+    check-cast v(\\d), Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;
     (?:.|\n)*?
-        const/4 v(\\d), 0x1
-    '''
+    const/4 v(\\d), 0x1
+'''
     match = re.search(pattern, old_body)
     register1 = match.group(1)
     register2 = match.group(2)
 
     new_segment = f'''\
-        check-cast v{register1}, Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;
+    check-cast v{register1}, Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;
 
-        iget-object v{register2}, v{register1}, Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;->adInfo:Lcom/android/thememanager/basemodule/ad/model/AdInfoResponse;
+    iget-object v{register2}, v{register1}, Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;->adInfo:Lcom/android/thememanager/basemodule/ad/model/AdInfoResponse;
 
-        if-nez v{register2}, :goto_{goto}
+    if-nez v{register2}, :goto_{goto}
 
-        const/4 v{register2}, 0x1
-    '''
+    const/4 v{register2}, 0x1
+'''
     new_body = old_body.replace(match.group(0), new_segment)
     smali.method_replace(old_body, new_body)
 
