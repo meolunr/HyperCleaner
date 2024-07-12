@@ -139,6 +139,7 @@ def repack_img():
         file = f'images/{partition}.img'
         match imgfile.file_system(file):
             case imgfile.FileSystem.EROFS:
+                imgfile.sync_app_perm_and_context(partition)
                 fs_config = f'config/{partition}_fs_config'
                 contexts = f'config/{partition}_file_contexts'
                 subprocess.run(f'{mkfs_erofs} -zlz4hc,1 -T 1230768000 --mount-point /{partition} --fs-config-file {fs_config} --file-contexts {contexts} {file} {partition}',
