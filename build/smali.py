@@ -1,4 +1,6 @@
+import os
 import re
+import shutil
 from enum import Enum
 
 
@@ -82,6 +84,10 @@ class SmaliFile:
 .end method\
         '''
         self.method_replace(old_body, new_body)
+
+    def add_affiliated_smali(self, file: str, name: str):
+        folder = os.path.dirname(self.file)
+        shutil.copy(file, f'{folder}/{name}')
 
     def parse_all_methods(self):
         pattern = re.compile(r'\.method.+?\n.+?\.end method', re.DOTALL)
