@@ -69,18 +69,17 @@ def remove_system_signature_check():
 
     specifier = MethodSpecifier()
     specifier.keywords.add('getMinimumSignatureSchemeVersionForTargetSdk')
+    pattern = '''\
+    invoke-static .+?, Landroid/util/apk/ApkSignatureVerifier;->getMinimumSignatureSchemeVersionForTargetSdk\\(I\\)I
+
+    move-result ([v|p]\\d)
+'''
+    repl = '''\
+    const/4 \\g<1>, 0x0
+'''
     for smali in apk.find_smali('getMinimumSignatureSchemeVersionForTargetSdk'):
         old_body = smali.find_method(specifier)
-        pattern = '''\
-    invoke-static {[v|p]\\d}, Landroid/util/apk/ApkSignatureVerifier;->getMinimumSignatureSchemeVersionForTargetSdk\\(I\\)I
-
-    move-result v(\\d)
-'''
-        match = re.search(pattern, old_body)
-        new_segment = f'''\
-    const/4 v{match.group(1)}, 0x0
-'''
-        new_body = old_body.replace(match.group(0), new_segment)
+        new_body = re.sub(pattern, repl, old_body)
         smali.method_replace(old_body, new_body)
 
     apk.build()
@@ -175,7 +174,7 @@ def patch_theme_manager():
     apk = ApkFile('product/app/MIUIThemeManager/MIUIThemeManager.apk')
     apk.decode()
 
-    # Remove ads
+    log('去除主题商店广告')
     smali = apk.open_smali('com/android/thememanager/basemodule/ad/model/AdInfoResponse.smali')
     specifier = MethodSpecifier()
     specifier.name = 'isAdValid'
@@ -190,29 +189,25 @@ def patch_theme_manager():
     old_body = smali.find_method(specifier)
     pattern = '''\
     :goto_(\\d)
-    invoke-interface {[v|p]\\d}, Ljava/util/Iterator;->hasNext\\(\\)Z
+    invoke-interface {.+?}, Ljava/util/Iterator;->hasNext\\(\\)Z
 '''
     match = re.search(pattern, old_body)
     goto = match.group(1)
     pattern = '''\
-    check-cast v(\\d), Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;
+    check-cast ([v|p]\\d), Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;
 (?:.|\n)*?
-    const/4 v(\\d), 0x1
+    const/4 ([v|p]\\d), 0x1
 '''
-    match = re.search(pattern, old_body)
-    register1 = match.group(1)
-    register2 = match.group(2)
+    repl = f'''\
+    check-cast \\g<1>, Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;
 
-    new_segment = f'''\
-    check-cast v{register1}, Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;
+    iget-object \\g<2>, \\g<1>, Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;->adInfo:Lcom/android/thememanager/basemodule/ad/model/AdInfoResponse;
 
-    iget-object v{register2}, v{register1}, Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;->adInfo:Lcom/android/thememanager/basemodule/ad/model/AdInfoResponse;
+    if-nez \\g<2>, :goto_{goto}
 
-    if-nez v{register2}, :goto_{goto}
-
-    const/4 v{register2}, 0x1
+    const/4 \\g<2>, 0x1
 '''
-    new_body = old_body.replace(match.group(0), new_segment)
+    new_body = re.sub(pattern, repl, old_body)
     smali.method_replace(old_body, new_body)
 
     apk.build()
