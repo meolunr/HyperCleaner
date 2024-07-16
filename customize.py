@@ -196,7 +196,7 @@ def patch_theme_manager():
     goto = match.group(1)
     pattern = '''\
     check-cast v(\\d), Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;
-    (?:.|\n)*?
+(?:.|\n)*?
     const/4 v(\\d), 0x1
 '''
     match = re.search(pattern, old_body)
@@ -218,6 +218,63 @@ def patch_theme_manager():
     apk.build()
 
 
+def patch_system_ui():
+    apk = ApkFile('system_ext/priv-app/MiuiSystemUI/MiuiSystemUI.apk')
+    apk.decode()
+
+    log('重定向通知渠道设置')
+    smali = apk.find_smali('"com.android.settings.Settings$AppNotificationSettingsActivity"').pop()
+    smali.add_affiliated_smali(f'{MISC_DIR}/smali/NotificationChannel.smali', 'HcInjector.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'onClick'
+    specifier.parameters = 'Landroid/view/View;'
+
+    old_body = smali.find_method(specifier)
+    pattern = '''\
+    iget-object ([v|p]\\d), .+?, Lcom/android/systemui/statusbar/notification/row/MiuiNotificationMenuRow;->mSbn:Lcom/android/systemui/statusbar/notification/ExpandedNotification;
+'''
+    repl = '''\\g<0>
+    sput-object \\g<1>, Lcom/android/systemui/statusbar/notification/row/HcInjector;->sbn:Landroid/service/notification/StatusBarNotification;
+'''
+    new_body = re.sub(pattern, repl, old_body)
+
+    pattern = '''\
+(    const-string .+?, ":settings:show_fragment_args"
+(?:.|\n)*?
+    invoke-virtual {([v|p]\\d), .+?, .+?}, Landroid/content/Intent;->putExtra\\(Ljava/lang/String;Landroid/os/Bundle;\\)Landroid/content/Intent;)
+(?:.|\\n)*?
+    return-void
+(?:.|\\n)*?
+    iget-object ([v|p]\\d), .+?, Lcom/android/systemui/statusbar/notification/row/MiuiNotificationMenuRow.+?
+'''
+    match = re.search(pattern, new_body)
+    register1 = match.group(2)
+    register2 = match.group(3)
+
+    pattern = f'''\
+    new-instance {register1}, Landroid/content/Intent;
+(?:.|\\n)*?
+{re.escape(match.group(1))}
+((?:.|\\n)*?)
+    return-void
+'''
+    repl = f'''\
+    invoke-static {{}}, Lcom/android/systemui/statusbar/notification/row/HcInjector;->makeChannelSettingIntent()Landroid/content/Intent;
+
+    move-result-object {register1}
+\\g<1>
+    const/4 {register2}, 0x0
+
+    sput-object {register2}, Lcom/android/systemui/statusbar/notification/row/HcInjector;->sbn:Landroid/service/notification/StatusBarNotification;
+
+    return-void
+'''
+    new_body = re.sub(pattern, repl, new_body)
+    smali.method_replace(old_body, new_body)
+
+    apk.build()
+
+
 def run_on_rom():
     rm_files()
     replace_analytics()
@@ -230,6 +287,7 @@ def run_on_rom():
 def run_on_module():
     patch_package_installer()
     patch_theme_manager()
+    patch_system_ui()
 
 
 # Unused Code ==================================================================================
@@ -270,14 +328,3 @@ def global_maximum_fps(apk_file: ApkFile):
     specifier.name = 'setScreenEffect'
     specifier.parameters = 'Ljava/lang/String;II'
     smali_file.method_nop(specifier)
-
-
-# MiuiSystemUI
-def systemui():
-    apk_file = ApkFile('MiuiSystemUI.apk')
-    apk_file.decode()
-
-    smali_file = apk_file.open_smali('com/android/settingslib/bluetooth/LocalBluetoothAdapter.smali')
-    specifier = MethodSpecifier()
-    specifier.name = 'isSupportBluetoothRestrict'
-    smali_file.method_return0(specifier)
