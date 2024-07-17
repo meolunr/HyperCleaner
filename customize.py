@@ -188,27 +188,89 @@ def patch_theme_manager():
 
     old_body = smali.find_method(specifier)
     pattern = '''\
-    :goto_(\\d)
-    invoke-interface {.+?}, Ljava/util/Iterator;->hasNext\\(\\)Z
-'''
+        :goto_(\\d)
+        invoke-interface {.+?}, Ljava/util/Iterator;->hasNext\\(\\)Z
+    '''
     match = re.search(pattern, old_body)
     goto = match.group(1)
     pattern = '''\
-    check-cast ([v|p]\\d), Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;
-(?:.|\n)*?
-    const/4 ([v|p]\\d), 0x1
-'''
+        check-cast ([v|p]\\d), Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;
+    (?:.|\n)*?
+        const/4 ([v|p]\\d), 0x1
+    '''
     repl = f'''\
-    check-cast \\g<1>, Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;
+        check-cast \\g<1>, Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;
 
-    iget-object \\g<2>, \\g<1>, Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;->adInfo:Lcom/android/thememanager/basemodule/ad/model/AdInfoResponse;
+        iget-object \\g<2>, \\g<1>, Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;->adInfo:Lcom/android/thememanager/basemodule/ad/model/AdInfoResponse;
 
-    if-nez \\g<2>, :goto_{goto}
+        if-nez \\g<2>, :goto_{goto}
 
-    const/4 \\g<2>, 0x1
-'''
+        const/4 \\g<2>, 0x1
+    '''
     new_body = re.sub(pattern, repl, old_body)
     smali.method_replace(old_body, new_body)
+
+    log('破解主题免费')
+    smali = apk.open_smali('com/android/thememanager/detail/theme/model/OnlineResourceDetail.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'toResource'
+    specifier.return_type = 'Lcom/android/thememanager/basemodule/resource/model/Resource;'
+
+    old_body = smali.find_method(specifier)
+    pattern = '''\
+    return-object ([v|p]\\d)
+'''
+    match = re.search(pattern, old_body)
+    register1 = match.group(1)
+    num = int(register1[1:]) - 1
+    if num < 0:
+        num += 2
+    register2 = f'{register1[:1]}{num}'
+
+    new_segment = f'''\
+    const/4 {register2}, 0x1
+
+    iput-boolean {register2}, p0, Lcom/android/thememanager/detail/theme/model/OnlineResourceDetail;->bought:Z
+    
+    return-object {register1}
+'''
+    new_body = old_body.replace(match.group(0), new_segment)
+    smali.method_replace(old_body, new_body)
+
+    smali = apk.open_smali('com/android/thememanager/basemodule/views/DiscountPriceView.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'setPrice'
+    specifier.parameters = 'II'
+
+    old_body = smali.find_method(specifier)
+    lines = old_body.splitlines()
+    lines.insert(2, '    const/4 p1, 0x0')
+    lines.insert(3, '    const/4 p2, 0x0')
+    smali.method_replace(old_body, '\n'.join(lines))
+
+    smali = apk.find_smali('"DrmService.java"', '"theme"', '"check rights isLegal: "').pop()
+    specifier = MethodSpecifier()
+    specifier.parameters = 'Lcom/android/thememanager/basemodule/resource/model/Resource;'
+    specifier.return_type = 'Lmiui/drm/DrmManager$DrmResult;'
+
+    old_body = smali.find_method(specifier)
+    lines = old_body.splitlines()
+    new_body = f'''\
+{lines[0]}
+    .locals 0
+    
+    sget-object p0, Lmiui/drm/DrmManager$DrmResult;->DRM_SUCCESS:Lmiui/drm/DrmManager$DrmResult;
+
+    return-object p0
+.end method
+'''
+    smali.method_replace(old_body, new_body)
+
+    smali = apk.open_smali('com/miui/maml/widget/edit/MamlutilKt.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'themeManagerSupportPaidWidget'
+    specifier.parameters = 'Landroid/content/Context;'
+    smali.method_return_boolean(specifier, False)
 
     apk.build()
 
