@@ -188,25 +188,25 @@ def patch_theme_manager():
 
     old_body = smali.find_method(specifier)
     pattern = '''\
-        :goto_(\\d)
-        invoke-interface {.+?}, Ljava/util/Iterator;->hasNext\\(\\)Z
-    '''
+    :goto_(\\d)
+    invoke-interface {.+?}, Ljava/util/Iterator;->hasNext\\(\\)Z
+'''
     match = re.search(pattern, old_body)
     goto = match.group(1)
     pattern = '''\
-        check-cast ([v|p]\\d), Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;
-    (?:.|\n)*?
-        const/4 ([v|p]\\d), 0x1
+    check-cast ([v|p]\\d), Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;
+(?:.|\n)*?
+    const/4 ([v|p]\\d), 0x1
     '''
     repl = f'''\
-        check-cast \\g<1>, Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;
+    check-cast \\g<1>, Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;
 
-        iget-object \\g<2>, \\g<1>, Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;->adInfo:Lcom/android/thememanager/basemodule/ad/model/AdInfoResponse;
+    iget-object \\g<2>, \\g<1>, Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;->adInfo:Lcom/android/thememanager/basemodule/ad/model/AdInfoResponse;
 
-        if-nez \\g<2>, :goto_{goto}
+    if-nez \\g<2>, :goto_{goto}
 
-        const/4 \\g<2>, 0x1
-    '''
+    const/4 \\g<2>, 0x1
+'''
     new_body = re.sub(pattern, repl, old_body)
     smali.method_replace(old_body, new_body)
 
