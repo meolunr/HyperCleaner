@@ -197,7 +197,7 @@ def patch_theme_manager():
     check-cast ([v|p]\\d), Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;
 (?:.|\n)*?
     const/4 ([v|p]\\d), 0x1
-    '''
+'''
     repl = f'''\
     check-cast \\g<1>, Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;
 
@@ -271,6 +271,28 @@ def patch_theme_manager():
     specifier.name = 'themeManagerSupportPaidWidget'
     specifier.parameters = 'Landroid/content/Context;'
     smali.method_return_boolean(specifier, False)
+
+    apk.build()
+
+    # Prevent theme recovery
+    log('防止主题恢复')
+    apk = ApkFile('system_ext/framework/miui-framework.jar')
+    apk.decode()
+
+    smali = apk.open_smali('miui/drm/ThemeReceiver.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'validateTheme'
+    old_body = smali.find_method(specifier)
+    pattern = '''\
+    invoke-static {.+?, .+?, .+?}, Lmiui/drm/DrmManager;->isLegal\\(Landroid/content/Context;Ljava/io/File;Ljava/io/File;\\)Lmiui/drm/DrmManager\\$DrmResult;
+
+    move-result-object ([v|p]\\d)
+'''
+    repl = f'''\
+    sget-object \\g<1>, Lmiui/drm/DrmManager$DrmResult;->DRM_SUCCESS:Lmiui/drm/DrmManager$DrmResult;
+'''
+    new_body = re.sub(pattern, repl, old_body)
+    smali.method_replace(old_body, new_body)
 
     apk.build()
 
