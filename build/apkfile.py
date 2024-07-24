@@ -39,6 +39,7 @@ class ApkFile:
                 smali = SmaliFile(assumed_path, self)
                 if auto_parse:
                     smali.parse_all_methods()
+                    smali.parse_all_constructor()
                 return smali
 
     def find_smali(self, *keywords: str):
@@ -54,6 +55,7 @@ class ApkFile:
             if len(keyword_set) == 0:
                 smali = SmaliFile(file, self)
                 smali.parse_all_methods()
+                smali.parse_all_constructor()
                 results.add(smali)
         return results
 

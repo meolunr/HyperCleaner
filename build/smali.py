@@ -54,6 +54,18 @@ class SmaliFile:
         if len(results) == 1:
             return self._methods[results.pop()]
 
+    def find_constructor(self, parameters: str = ''):
+        results = self._methods.keys()
+        basic_conditions = {
+            lambda x: x.name == 'constructor',
+            lambda x: x.parameters == parameters,
+        }
+        for condition in basic_conditions:
+            results = set(filter(condition, results))
+
+        if len(results) == 1:
+            return self._methods[results.pop()]
+
     def method_replace(self, old_method: str | MethodSpecifier, new_body: str):
         if type(old_method) is MethodSpecifier:
             old_method = self.find_method(old_method)
@@ -102,6 +114,16 @@ class SmaliFile:
             content = f.read()
         method_defines = pattern.findall(content)
         self._add_method(method_defines[0])
+
+    def parse_all_constructor(self):
+        pattern = re.compile(r'(\.method.*?constructor <(?:cl)?init>\((\S*?)\)V\n.+?\.end method)', re.DOTALL)
+        with open(self.file, 'r', encoding='utf-8') as f:
+            content = f.read()
+        for method_defines in pattern.findall(content):
+            method = Method()
+            method.name = 'constructor'
+            method.parameters = method_defines[1]
+            self._methods[method] = method_defines[0]
 
     def _add_method(self, content: str):
         method_pattern = re.compile(r'(\.method (public|protected|private).*?(\w+?)\((\S*?)\)(\S+))\n')
