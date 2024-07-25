@@ -301,6 +301,42 @@ def patch_system_ui():
     apk = ApkFile('system_ext/priv-app/MiuiSystemUI/MiuiSystemUI.apk')
     apk.decode()
 
+    # Hide the HD icon
+    log('隐藏状态栏 HD 图标')
+    smali = apk.open_smali('com/android/systemui/statusbar/phone/MiuiIconManagerUtils.smali')
+    old_body = smali.find_constructor()
+
+    pattern = '''\
+(    sput-object ([v|p]\\d), Lcom/android/systemui/statusbar/phone/MiuiIconManagerUtils;->RIGHT_BLOCK_LIST:Ljava/util/ArrayList;)
+(?:.|\n)*?
+(    const-string ([v|p]\\d), "mute")
+'''
+    match = re.search(pattern, old_body)
+    register1 = match.group(2)
+    register2 = match.group(4)
+    new_segment = '''\
+{}
+
+    const-string {}, "hd"
+
+    invoke-virtual {{{}, {}}}, Ljava/util/ArrayList;->add(Ljava/lang/Object;)Z
+
+{}
+'''
+    new_body = old_body.replace(match.group(0), new_segment.format(match.group(1), register2, register1, register2, match.group(3)))
+
+    pattern = '''\
+(    sput-object ([v|p]\\d), Lcom/android/systemui/statusbar/phone/MiuiIconManagerUtils;->CONTROL_CENTER_BLOCK_LIST:Ljava/util/ArrayList;)
+(?:.|\n)*?
+(    const-string ([v|p]\\d), "car")
+'''
+    match = re.search(pattern, old_body)
+    register1 = match.group(2)
+    register2 = match.group(4)
+    new_body = new_body.replace(match.group(0), new_segment.format(match.group(1), register2, register1, register2, match.group(3)))
+
+    smali.method_replace(old_body, new_body)
+
     log('重定向通知渠道设置')
     smali = apk.find_smali('"com.android.settings.Settings$AppNotificationSettingsActivity"').pop()
     smali.add_affiliated_smali(f'{MISC_DIR}/smali/NotificationChannel.smali', 'HcInjector.smali')
@@ -364,8 +400,8 @@ def run_on_rom():
 
 
 def run_on_module():
-    patch_package_installer()
-    patch_theme_manager()
+    # patch_package_installer()
+    # patch_theme_manager()
     patch_system_ui()
 
 
