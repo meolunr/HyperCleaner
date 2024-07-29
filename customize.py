@@ -274,7 +274,8 @@ def patch_theme_manager():
 
     apk.build()
 
-    # Prevent theme recovery
+
+def prevent_theme_recovery():
     log('防止主题恢复')
     apk = ApkFile('system_ext/framework/miui-framework.jar')
     apk.decode()
@@ -397,11 +398,13 @@ def run_on_rom():
     disable_wake_path_dialog()
     patch_package_installer()
     patch_theme_manager()
+    prevent_theme_recovery()
+    patch_system_ui()
 
 
 def run_on_module():
-    # patch_package_installer()
-    # patch_theme_manager()
+    patch_package_installer()
+    patch_theme_manager()
     patch_system_ui()
 
 
