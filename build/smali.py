@@ -15,6 +15,7 @@ class Method:
         self.access = None
         self.is_static = None
         self.is_final = None
+        self.is_abstract = None
         self.parameters = None
         self.return_type = None
         self.keywords: set[str] = set()
@@ -40,6 +41,7 @@ class SmaliFile:
             lambda x: True if specifier.access is None else x.access == specifier.access,
             lambda x: True if specifier.is_static is None else x.is_static == specifier.is_static,
             lambda x: True if specifier.is_final is None else x.is_final == specifier.is_final,
+            lambda x: True if specifier.is_abstract is None else x.is_abstract == specifier.is_abstract,
             lambda x: True if specifier.parameters is None else x.parameters == specifier.parameters,
             lambda x: True if specifier.return_type is None else x.return_type == specifier.return_type
         }
@@ -139,6 +141,7 @@ class SmaliFile:
         method.access = MethodSpecifier.Access(method_defines[1])
         method.is_static = ' static ' in method_defines[0]
         method.is_final = ' final ' in method_defines[0]
+        method.is_abstract = ' abstract ' in method_defines[0]
         method.name = method_defines[2]
         method.parameters = method_defines[3]
         method.return_type = method_defines[4]

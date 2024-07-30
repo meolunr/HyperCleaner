@@ -170,6 +170,7 @@ def patch_package_installer():
     apk.build()
 
 
+@modified('product/app/MIUIThemeManager/MIUIThemeManager.apk')
 def patch_theme_manager():
     apk = ApkFile('product/app/MIUIThemeManager/MIUIThemeManager.apk')
     apk.decode()
@@ -275,7 +276,7 @@ def patch_theme_manager():
     apk.build()
 
 
-def prevent_theme_recovery():
+def disable_theme_recovery():
     log('防止主题恢复')
     apk = ApkFile('system_ext/framework/miui-framework.jar')
     apk.decode()
@@ -391,6 +392,37 @@ def patch_system_ui():
     apk.build()
 
 
+@modified('product/priv-app/MiuiMms/MiuiMms.apk')
+def remove_mms_ads():
+    apk = ApkFile('product/priv-app/MiuiMms/MiuiMms.apk')
+    apk.decode()
+
+    log('去除短信输入框广告')
+    smali = apk.open_smali('com/miui/smsextra/ui/BottomMenu.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'allowMenuMode'
+    specifier.return_type = 'Z'
+    smali.method_return_boolean(specifier, False)
+
+    log('去除短信下方广告')
+    specifier = MethodSpecifier()
+    specifier.name = 'setHideButton'
+    specifier.is_abstract = False
+    pattern = '''\
+    iput-boolean ([v|p]\\d), p0, L.+?;->.+?:Z
+'''
+    repl = '''\
+    const/4 \\g<1>, 0x1
+
+\\g<0>'''
+    for smali in apk.find_smali('final setHideButton'):
+        old_body = smali.find_method(specifier)
+        new_body = re.sub(pattern, repl, old_body)
+        smali.method_replace(old_body, new_body)
+
+    apk.build()
+
+
 def run_on_rom():
     rm_files()
     replace_analytics()
@@ -398,14 +430,16 @@ def run_on_rom():
     disable_wake_path_dialog()
     patch_package_installer()
     patch_theme_manager()
-    prevent_theme_recovery()
+    disable_theme_recovery()
     patch_system_ui()
+    remove_mms_ads()
 
 
 def run_on_module():
     patch_package_installer()
     patch_theme_manager()
     patch_system_ui()
+    remove_mms_ads()
 
 
 # Unused Code ==================================================================================
