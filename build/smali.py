@@ -90,11 +90,11 @@ class SmaliFile:
     def method_return_boolean(self, specifier: MethodSpecifier, value: bool):
         old_body = self.find_method(specifier)
         new_body = old_body.splitlines()[0] + f'''
-    .locals 0
+    .locals 1
 
-    const/4 p0, 0x{1 if value else 0}
+    const/4 v0, 0x{1 if value else 0}
 
-    return p0
+    return v0
 .end method\
         '''
         self.method_replace(old_body, new_body)

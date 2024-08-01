@@ -105,6 +105,7 @@ fi
 print "- 开始刷入"
 $var_flash_img$var_remove_data_app
 print "- 清除缓存"
+rm -rf /data/cache
 rm -rf /data/dalvik-cache
 rm -rf /data/system/package_cache
 
