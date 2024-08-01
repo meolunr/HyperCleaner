@@ -303,6 +303,19 @@ def patch_system_ui():
     apk = ApkFile('system_ext/priv-app/MiuiSystemUI/MiuiSystemUI.apk')
     apk.decode()
 
+    # Disable historical notifications
+    log('禁用历史通知')
+    smali = apk.open_smali('com/android/systemui/statusbar/notification/NotificationUtil.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'shouldSuppressFold'
+    smali.method_return_boolean(specifier, True)
+
+    smali = apk.open_smali('com/android/systemui/statusbar/notification/collection/coordinator/FoldCoordinator.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'attach'
+    specifier.parameters = 'Lcom/android/systemui/statusbar/notification/collection/NotifPipeline;'
+    smali.method_nop(specifier)
+
     # Hide the HD icon
     log('隐藏状态栏 HD 图标')
     smali = apk.open_smali('com/android/systemui/statusbar/phone/MiuiIconManagerUtils.smali')
