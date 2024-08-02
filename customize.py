@@ -87,11 +87,11 @@ def remove_system_signature_check():
         os.remove(file)
 
 
-def disable_wake_path_dialog():
-    log('禁用关联启动对话框')
+def patch_miui_service():
     apk = ApkFile('system_ext/framework/miui-services.jar')
     apk.decode()
 
+    log('禁用关联启动对话框')
     smali = apk.open_smali('miui/app/ActivitySecurityHelper.smali')
     specifier = MethodSpecifier()
     specifier.name = 'getCheckStartActivityIntent'
@@ -99,6 +99,22 @@ def disable_wake_path_dialog():
     pattern = 'if-eqz p6, :cond_.+'
     match = re.search(pattern, old_body)
     new_body = old_body.replace(match.group(0), '')
+    smali.method_replace(old_body, new_body)
+
+    log('防止主题恢复')
+    smali = apk.open_smali('com/android/server/am/ActivityManagerServiceImpl.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'finishBooting'
+    specifier.parameters = ''
+    old_body = smali.find_method(specifier)
+    pattern = '''\
+    invoke-static {.+?}, Lmiui/drm/DrmBroadcast;->getInstance\\(Landroid/content/Context;\\)Lmiui/drm/DrmBroadcast;
+
+    move-result-object .+?
+
+    invoke-virtual {.+?}, Lmiui/drm/DrmBroadcast;->broadcast\\(\\)V
+'''
+    new_body = re.sub(pattern, '', old_body)
     smali.method_replace(old_body, new_body)
 
     apk.build()
@@ -276,29 +292,6 @@ def patch_theme_manager():
     apk.build()
 
 
-def disable_theme_recovery():
-    log('防止主题恢复')
-    apk = ApkFile('system_ext/framework/miui-framework.jar')
-    apk.decode()
-
-    smali = apk.open_smali('miui/drm/ThemeReceiver.smali')
-    specifier = MethodSpecifier()
-    specifier.name = 'validateTheme'
-    old_body = smali.find_method(specifier)
-    pattern = '''\
-    invoke-static {.+?, .+?, .+?}, Lmiui/drm/DrmManager;->isLegal\\(Landroid/content/Context;Ljava/io/File;Ljava/io/File;\\)Lmiui/drm/DrmManager\\$DrmResult;
-
-    move-result-object ([v|p]\\d)
-'''
-    repl = f'''\
-    sget-object \\g<1>, Lmiui/drm/DrmManager$DrmResult;->DRM_SUCCESS:Lmiui/drm/DrmManager$DrmResult;
-'''
-    new_body = re.sub(pattern, repl, old_body)
-    smali.method_replace(old_body, new_body)
-
-    apk.build()
-
-
 def patch_system_ui():
     apk = ApkFile('system_ext/priv-app/MiuiSystemUI/MiuiSystemUI.apk')
     apk.decode()
@@ -440,10 +433,9 @@ def run_on_rom():
     rm_files()
     replace_analytics()
     remove_system_signature_check()
-    disable_wake_path_dialog()
+    patch_miui_service()
     patch_package_installer()
     patch_theme_manager()
-    disable_theme_recovery()
     patch_system_ui()
     remove_mms_ads()
 

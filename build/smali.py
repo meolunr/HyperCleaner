@@ -9,6 +9,7 @@ class Method:
         PUBLIC = 'public'
         PROTECTED = 'protected'
         PRIVATE = 'private'
+        DEFAULT = ''
 
     def __init__(self):
         self.name = None
@@ -128,7 +129,7 @@ class SmaliFile:
             self._methods[method] = method_defines[0]
 
     def _add_method(self, content: str):
-        method_pattern = re.compile(r'(\.method (public|protected|private).*?(\w+?)\((\S*?)\)(\S+))\n')
+        method_pattern = re.compile(r'(\.method (public|protected|private|).*?(\w+?)\((\S*?)\)(\S+))\n')
         invoke_pattern = re.compile(r'invoke-(?:direct|virtual|static) \{.*?}, L(\S+?)\n', re.DOTALL)
 
         method_defines = method_pattern.findall(content)
