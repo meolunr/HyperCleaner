@@ -465,6 +465,24 @@ def remove_mms_ads():
     apk.build()
 
 
+@modified('system/system/priv-app/TeleService/TeleService.apk')
+def show_network_type_settings():
+    log('显示网络类型设置')
+    apk = ApkFile('system/system/priv-app/TeleService/TeleService.apk')
+    apk.decode()
+
+    smali = apk.open_smali('com/android/phone/NetworkModeManager.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'isRemoveNetworkModeSettings'
+
+    specifier.parameters = 'I'
+    smali.method_return_boolean(specifier, False)
+    specifier.parameters = 'Lcom/android/internal/telephony/Phone;'
+    smali.method_return_boolean(specifier, False)
+
+    apk.build()
+
+
 def run_on_rom():
     rm_files()
     replace_analytics()
@@ -474,6 +492,7 @@ def run_on_rom():
     patch_theme_manager()
     patch_system_ui()
     remove_mms_ads()
+    show_network_type_settings()
 
 
 def run_on_module():
@@ -481,6 +500,7 @@ def run_on_module():
     patch_theme_manager()
     patch_system_ui()
     remove_mms_ads()
+    show_network_type_settings()
 
 
 # Unused Code ==================================================================================
