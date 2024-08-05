@@ -483,6 +483,22 @@ def show_network_type_settings():
     apk.build()
 
 
+def patch_security_center():
+    apk = ApkFile('product/priv-app/MIUISecurityCenter/MIUISecurityCenter.apk')
+    apk.decode()
+
+    log('去除应用信息举报按钮')
+    smali = apk.open_smali('com/miui/appmanager/ApplicationsDetailsActivity.smali')
+    specifier = MethodSpecifier()
+    specifier.parameters = 'Landroid/content/Context;Landroid/net/Uri;'
+    specifier.return_type = 'Z'
+    specifier.keywords.add('"android.intent.action.VIEW"')
+    specifier.keywords.add('"com.xiaomi.market"')
+    smali.method_return_boolean(specifier, False)
+
+    apk.build()
+
+
 def run_on_rom():
     rm_files()
     replace_analytics()
@@ -493,6 +509,7 @@ def run_on_rom():
     patch_system_ui()
     remove_mms_ads()
     show_network_type_settings()
+    patch_security_center()
 
 
 def run_on_module():
@@ -501,6 +518,7 @@ def run_on_module():
     patch_system_ui()
     remove_mms_ads()
     show_network_type_settings()
+    patch_security_center()
 
 
 # Unused Code ==================================================================================
