@@ -248,7 +248,7 @@ def patch_theme_manager():
     const/4 {register2}, 0x1
 
     iput-boolean {register2}, p0, Lcom/android/thememanager/detail/theme/model/OnlineResourceDetail;->bought:Z
-    
+
     return-object {register1}
 '''
     new_body = old_body.replace(match.group(0), new_segment)
@@ -275,7 +275,7 @@ def patch_theme_manager():
     new_body = f'''\
 {lines[0]}
     .locals 0
-    
+
     sget-object p0, Lmiui/drm/DrmManager$DrmResult;->DRM_SUCCESS:Lmiui/drm/DrmManager$DrmResult;
 
     return-object p0
@@ -314,36 +314,20 @@ def patch_system_ui():
     log('隐藏状态栏 HD 图标')
     smali = apk.open_smali('com/android/systemui/statusbar/phone/MiuiIconManagerUtils.smali')
     old_body = smali.find_constructor()
+    repl = '''\
+    const-string v1, "hd"
 
-    pattern = '''\
-(    sput-object ([v|p]\\d), Lcom/android/systemui/statusbar/phone/MiuiIconManagerUtils;->RIGHT_BLOCK_LIST:Ljava/util/ArrayList;)
-(?:.|\n)*?
-(    const-string ([v|p]\\d), "mute")
+    sget-object v0, Lcom/android/systemui/statusbar/phone/MiuiIconManagerUtils;->RIGHT_BLOCK_LIST:Ljava/util/ArrayList;
+
+    invoke-virtual {v0, v1}, Ljava/util/ArrayList;->add(Ljava/lang/Object;)Z
+
+    sget-object v0, Lcom/android/systemui/statusbar/phone/MiuiIconManagerUtils;->CONTROL_CENTER_BLOCK_LIST:Ljava/util/ArrayList;
+
+    invoke-virtual {v0, v1}, Ljava/util/ArrayList;->add(Ljava/lang/Object;)Z
+
+\\g<0>
 '''
-    match = re.search(pattern, old_body)
-    register1 = match.group(2)
-    register2 = match.group(4)
-    new_segment = '''\
-{}
-
-    const-string {}, "hd"
-
-    invoke-virtual {{{}, {}}}, Ljava/util/ArrayList;->add(Ljava/lang/Object;)Z
-
-{}
-'''
-    new_body = old_body.replace(match.group(0), new_segment.format(match.group(1), register2, register1, register2, match.group(3)))
-
-    pattern = '''\
-(    sput-object ([v|p]\\d), Lcom/android/systemui/statusbar/phone/MiuiIconManagerUtils;->CONTROL_CENTER_BLOCK_LIST:Ljava/util/ArrayList;)
-(?:.|\n)*?
-(    const-string ([v|p]\\d), "car")
-'''
-    match = re.search(pattern, old_body)
-    register1 = match.group(2)
-    register2 = match.group(4)
-    new_body = new_body.replace(match.group(0), new_segment.format(match.group(1), register2, register1, register2, match.group(3)))
-
+    new_body = re.sub(' {4}return-void', repl, old_body)
     smali.method_replace(old_body, new_body)
 
     log('重定向通知渠道设置')
