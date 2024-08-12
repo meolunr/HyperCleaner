@@ -244,14 +244,14 @@ def patch_theme_manager():
         num += 2
     register2 = f'{register1[:1]}{num}'
 
-    new_segment = f'''\
+    repl = f'''\
     const/4 {register2}, 0x1
 
     iput-boolean {register2}, p0, Lcom/android/thememanager/detail/theme/model/OnlineResourceDetail;->bought:Z
 
     return-object {register1}
 '''
-    new_body = old_body.replace(match.group(0), new_segment)
+    new_body = old_body.replace(match.group(0), repl)
     smali.method_replace(old_body, new_body)
 
     smali = apk.open_smali('com/android/thememanager/basemodule/views/DiscountPriceView.smali')
@@ -305,7 +305,6 @@ def patch_system_ui():
     smali.method_return_boolean(specifier, True)
 
     smali = apk.open_smali('com/android/systemui/statusbar/notification/collection/coordinator/FoldCoordinator.smali')
-    specifier = MethodSpecifier()
     specifier.name = 'attach'
     specifier.parameters = 'Lcom/android/systemui/statusbar/notification/collection/NotifPipeline;'
     smali.method_nop(specifier)
@@ -411,7 +410,6 @@ def patch_system_ui():
 '''
     smali.method_replace(old_body, new_body)
 
-    specifier = MethodSpecifier()
     specifier.name = 'updateRightAffordanceViewLayoutVisibility'
     smali.method_nop(specifier)
 
@@ -480,9 +478,13 @@ def patch_security_center():
     specifier.keywords.add('"com.xiaomi.market"')
     smali.method_return_boolean(specifier, False)
 
-    fragment_smali = apk.find_smali('.class Lcom/miui/powercenter/nightcharge/SmartChargeFragment$', '.super Landroid/os/Handler;').pop()
-
     log('显示电池健康度')
+    smali = apk.find_smali('.class Lcom/miui/powercenter/nightcharge/SmartChargeFragment$', '.super Landroid/os/Handler;').pop()
+    specifier = MethodSpecifier()
+    specifier.name = 'handleMessage'
+    specifier.parameters = 'Landroid/os/Message;'
+    old_body = smali.find_method(specifier)
+
     utils_smali = apk.find_smali('"BatteryHealthUtils"').pop()
     specifier = MethodSpecifier()
     specifier.keywords.add('"persist.vendor.smart.battMntor"')
@@ -497,11 +499,6 @@ def patch_security_center():
     specifier.keywords.add('"getBatteryHealth error:"')
     method_signature_3 = manager_smali.find_method(specifier).splitlines()[0].split(' ')[-1]
 
-    specifier = MethodSpecifier()
-    specifier.name = 'handleMessage'
-    specifier.parameters = 'Landroid/os/Message;'
-    old_body = fragment_smali.find_method(specifier)
-
     pattern = f'''\
     invoke-static {{}}, {utils_smali.get_type_signature()}->{re.escape(method_signature_1)}
 
@@ -515,7 +512,66 @@ def patch_security_center():
     invoke-static {{}}, {manager_type_signature}->{method_signature_3}
 '''
     new_body = re.sub(pattern, repl, old_body)
-    fragment_smali.method_replace(old_body, new_body)
+    smali.method_replace(old_body, new_body)
+
+    log('显示电池温度')
+    smali = apk.open_smali('com/miui/powercenter/nightcharge/SmartChargeFragment.smali')
+    specifier = MethodSpecifier()
+    specifier.parameters = 'Landroid/content/Context;'
+    specifier.return_type = 'Ljava/lang/String;'
+    specifier.is_static = True
+    specifier.keywords.add('-0x80000000')
+    old_body = smali.find_method(specifier)
+
+    pattern = f'''\
+    invoke-static {{p0}}, L.+?;->.+?\\(Landroid/content/Context;\\)I
+
+    move-result ([v|p]\\d)
+
+    invoke-static {{p0}}, L.+?;->.+?\\(Landroid/content/Context;\\)I
+
+    move-result ([v|p]\\d)
+
+    const/high16 .+?, -0x80000000
+(?:.|\\n)*?
+    const/4 ([v|p]\\d), 0x5
+
+    if-le .+?, \\3, :cond_(\\d)
+
+    :cond_\\d
+    move \\1, \\2
+
+    :cond_\\4
+'''
+    match = re.search(pattern, old_body)
+    register1 = match.group(1)
+    register2 = match.group(2)
+    cond = match.group(4)
+
+    pattern = f'''\
+    :cond_{cond}
+(?:.|\\n)*?
+.end method'''
+    repl = f'''\
+    :cond_{cond}
+    new-instance {register2}, Ljava/lang/StringBuilder;
+
+    invoke-direct {{{register2}}}, Ljava/lang/StringBuilder;-><init>()V
+
+    invoke-virtual {{{register2}, {register1}}}, Ljava/lang/StringBuilder;->append(I)Ljava/lang/StringBuilder;
+
+    const-string {register1}, "℃"
+
+    invoke-virtual {{{register2}, {register1}}}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+
+    invoke-virtual {{{register2}}}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+
+    move-result-object {register1}
+
+    return-object {register1}
+.end method'''
+    new_body = re.sub(pattern, repl, old_body)
+    smali.method_replace(old_body, new_body)
 
     apk.build()
 
