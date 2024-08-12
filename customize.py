@@ -480,6 +480,43 @@ def patch_security_center():
     specifier.keywords.add('"com.xiaomi.market"')
     smali.method_return_boolean(specifier, False)
 
+    fragment_smali = apk.find_smali('.class Lcom/miui/powercenter/nightcharge/SmartChargeFragment$', '.super Landroid/os/Handler;').pop()
+
+    log('显示电池健康度')
+    utils_smali = apk.find_smali('"BatteryHealthUtils"').pop()
+    specifier = MethodSpecifier()
+    specifier.keywords.add('"persist.vendor.smart.battMntor"')
+    method_signature_1 = utils_smali.find_method(specifier).splitlines()[0].split(' ')[-1]
+
+    manager_smali = apk.find_smali('"BatterHealthManager"').pop()
+    manager_type_signature = manager_smali.get_type_signature()
+    specifier.keywords.clear()
+    specifier.keywords.add('"key_get_battery_health_value"')
+    method_signature_2 = manager_smali.find_method(specifier).splitlines()[0].split(' ')[-1]
+    specifier.keywords.clear()
+    specifier.keywords.add('"getBatteryHealth error:"')
+    method_signature_3 = manager_smali.find_method(specifier).splitlines()[0].split(' ')[-1]
+
+    specifier = MethodSpecifier()
+    specifier.name = 'handleMessage'
+    specifier.parameters = 'Landroid/os/Message;'
+    old_body = fragment_smali.find_method(specifier)
+
+    pattern = f'''\
+    invoke-static {{}}, {utils_smali.get_type_signature()}->{re.escape(method_signature_1)}
+
+    move-result .+?
+
+    if-eqz .+?, :cond_\\d
+
+    invoke-static {{}}, {manager_type_signature}->{re.escape(method_signature_2)}
+'''
+    repl = f'''\
+    invoke-static {{}}, {manager_type_signature}->{method_signature_3}
+'''
+    new_body = re.sub(pattern, repl, old_body)
+    fragment_smali.method_replace(old_body, new_body)
+
     apk.build()
 
 

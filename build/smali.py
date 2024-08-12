@@ -128,6 +128,10 @@ class SmaliFile:
             method.parameters = method_defines[1]
             self._methods[method] = method_defines[0]
 
+    def get_type_signature(self):
+        normpath = self.file.replace('\\', '/')
+        return re.sub(r'.+?smali/classes\d*/(.+?)\.smali', r'L\g<1>;', normpath)
+
     def _add_method(self, content: str):
         method_pattern = re.compile(r'(\.method (public|protected|private|).*?(\w+?)\((\S*?)\)(\S+))\n')
         invoke_pattern = re.compile(r'invoke-(?:direct|virtual|static) \{.*?}, L(\S+?)\n', re.DOTALL)
