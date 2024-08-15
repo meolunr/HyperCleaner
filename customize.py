@@ -573,6 +573,33 @@ def patch_security_center():
     new_body = re.sub(pattern, repl, old_body)
     smali.method_replace(old_body, new_body)
 
+    log('手机管家 100 分')
+    # Lock 100 score
+    smali = apk.open_smali('com/miui/securityscan/scanner/ScoreManager.smali')
+    specifier = MethodSpecifier()
+    specifier.return_type = 'I'
+    specifier.keywords.add('getMinusPredictScore')
+
+    old_body = smali.find_method(specifier)
+    lines = old_body.splitlines()
+    new_body = f'''\
+{lines[0]}
+    .locals 0
+
+    const/16 p0, 0x64
+
+    return p0
+.end method
+'''
+    smali.method_replace(old_body, new_body)
+
+    # Disable click events
+    smali = apk.open_smali('com/miui/securityscan/ui/main/MainContentFrame.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'onClick'
+    specifier.parameters = 'Landroid/view/View;'
+    smali.method_nop(specifier)
+
     apk.build()
 
 
@@ -605,20 +632,6 @@ def disable_wifi_blocked_notification(apk_file: ApkFile):
     specifier = MethodSpecifier()
     specifier.name = 'sendWifiNetworkBlockedNotify'
     smali_file.method_nop(specifier)
-
-
-# SecurityCenter
-def lock_100_score(apk_file: ApkFile):
-    specifier = MethodSpecifier()
-
-    smali_file = apk_file.open_smali('com/miui/securityscan/ui/main/MainContentFrame.smali')
-    specifier.name = 'onClick'
-    smali_file.method_nop(specifier)
-
-    smali_file = apk_file.open_smali('com/miui/securityscan/scanner/ScoreManager.smali')
-    specifier.name = None
-    specifier.keywords.append('getMinusPredictScore')
-    smali_file.method_return0(specifier)
 
 
 # PowerKeeper
