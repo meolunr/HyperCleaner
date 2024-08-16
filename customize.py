@@ -600,6 +600,29 @@ def patch_security_center():
     specifier.parameters = 'Landroid/view/View;'
     smali.method_nop(specifier)
 
+    log('显示详细耗电数据')
+    # Show battery usage data for all apps
+    smali = apk.find_smali('"PowerRankHelperHolder"', '"getBatteryUsageStats"').pop()
+    specifier = MethodSpecifier()
+    specifier.access = MethodSpecifier.Access.PUBLIC
+    specifier.is_static = True
+    specifier.parameters = ''
+    specifier.return_type = 'Z'
+    specifier.keywords.add('sget-boolean')
+    specifier.keywords.add('Lcom/miui/powercenter/legacypowerrank/')
+    smali.method_return_boolean(specifier, False)
+
+    # Show battery usage data for touchscreen
+    specifier.access = MethodSpecifier.Access.PRIVATE
+    smali.method_return_boolean(specifier, False)
+
+    # Hide unknown battery usage data
+    specifier.keywords.clear()
+    specifier.keywords.add('"ishtar"')
+    specifier.keywords.add('"nuwa"')
+    specifier.keywords.add('"fuxi"')
+    smali.method_return_boolean(specifier, True)
+
     apk.build()
 
 
