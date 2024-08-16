@@ -623,6 +623,14 @@ def patch_security_center():
     specifier.keywords.add('"fuxi"')
     smali.method_return_boolean(specifier, True)
 
+    log('禁用 Root 权限检查')
+    smali = apk.find_smali('"key_check_item_root"').pop()
+    specifier = MethodSpecifier()
+    specifier.is_static = True
+    specifier.return_type = 'Z'
+    specifier.keywords.add('"key_check_item_root"')
+    smali.method_return_boolean(specifier, False)
+
     apk.build()
 
 
