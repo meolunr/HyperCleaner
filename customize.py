@@ -123,6 +123,53 @@ def patch_miui_service():
             os.remove(file)
 
 
+def disable_sensitive_word_check():
+    log('禁用设备名称敏感词检查')
+    apk = ApkFile('system_ext/framework/miui-framework.jar')
+    apk.decode()
+
+    smali = apk.open_smali('miui/securitycenter/utils/WNCheckManager.smali')
+
+    specifier = MethodSpecifier()
+    specifier.name = 'supportWNChecker'
+    smali.method_return_boolean(specifier, False)
+
+    specifier.name = 'sendFailStateMessage'
+    old_body = smali.find_method(specifier)
+    pattern = '''\
+    const-string ([v|p]\\d), "key_state"
+
+    const/4 ([v|p]\\d), -0x1
+
+    invoke-virtual {.+?, \\1, \\2}, Landroid/os/Bundle;->putInt\\(Ljava/lang/String;I\\)V
+'''
+    segment = re.search(pattern, old_body).group(0)
+    new_body = old_body.replace(segment, segment.replace('-0x1', '0x0'))
+    smali.method_replace(old_body, new_body)
+
+    specifier.name = 'getCheckResultSync'
+    old_body = smali.find_method(specifier)
+    pattern = '''\
+    const/4 ([v|p]\\d), -0x1
+
+    invoke-static {\\1}, Ljava/lang/Integer;->valueOf\\(I\\)Ljava/lang/Integer;
+
+    move-result-object ([v|p]\\d)
+(?:.|\\n)*?
+    move-result-object ([v|p]\\d)
+
+    filled-new-array {\\2, \\3}, \\[Ljava/lang/Object;
+'''
+    segment = re.search(pattern, old_body).group(0)
+    new_body = old_body.replace(segment, segment.replace('-0x1', '0x0'))
+    smali.method_replace(old_body, new_body)
+
+    apk.build()
+    for file in glob('system_ext/framework/**/miui-framework.*', recursive=True):
+        if not os.path.samefile(apk.file, file):
+            os.remove(file)
+
+
 @modified('product/priv-app/MIUIPackageInstaller/MIUIPackageInstaller.apk')
 def patch_package_installer():
     log('净化应用包管理组件')
@@ -639,6 +686,7 @@ def run_on_rom():
     replace_analytics()
     remove_system_signature_check()
     patch_miui_service()
+    disable_sensitive_word_check()
     patch_package_installer()
     patch_theme_manager()
     patch_system_ui()
