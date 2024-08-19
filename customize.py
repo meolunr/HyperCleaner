@@ -123,53 +123,6 @@ def patch_miui_service():
             os.remove(file)
 
 
-def disable_sensitive_word_check():
-    log('禁用设备名称敏感词检查')
-    apk = ApkFile('system_ext/framework/miui-framework.jar')
-    apk.decode()
-
-    smali = apk.open_smali('miui/securitycenter/utils/WNCheckManager.smali')
-
-    specifier = MethodSpecifier()
-    specifier.name = 'supportWNChecker'
-    smali.method_return_boolean(specifier, False)
-
-    specifier.name = 'sendFailStateMessage'
-    old_body = smali.find_method(specifier)
-    pattern = '''\
-    const-string ([v|p]\\d), "key_state"
-
-    const/4 ([v|p]\\d), -0x1
-
-    invoke-virtual {.+?, \\1, \\2}, Landroid/os/Bundle;->putInt\\(Ljava/lang/String;I\\)V
-'''
-    segment = re.search(pattern, old_body).group(0)
-    new_body = old_body.replace(segment, segment.replace('-0x1', '0x0'))
-    smali.method_replace(old_body, new_body)
-
-    specifier.name = 'getCheckResultSync'
-    old_body = smali.find_method(specifier)
-    pattern = '''\
-    const/4 ([v|p]\\d), -0x1
-
-    invoke-static {\\1}, Ljava/lang/Integer;->valueOf\\(I\\)Ljava/lang/Integer;
-
-    move-result-object ([v|p]\\d)
-(?:.|\\n)*?
-    move-result-object ([v|p]\\d)
-
-    filled-new-array {\\2, \\3}, \\[Ljava/lang/Object;
-'''
-    segment = re.search(pattern, old_body).group(0)
-    new_body = old_body.replace(segment, segment.replace('-0x1', '0x0'))
-    smali.method_replace(old_body, new_body)
-
-    apk.build()
-    for file in glob('system_ext/framework/**/miui-framework.*', recursive=True):
-        if not os.path.samefile(apk.file, file):
-            os.remove(file)
-
-
 @modified('product/priv-app/MIUIPackageInstaller/MIUIPackageInstaller.apk')
 def patch_package_installer():
     log('净化应用包管理组件')
@@ -681,18 +634,101 @@ def patch_security_center():
     apk.build()
 
 
+@modified('system_ext/priv-app/AuthManager/AuthManager.apk')
+def disable_sensitive_word_check():
+    log('禁用设备名称敏感词检查')
+    apk = ApkFile('system_ext/priv-app/AuthManager/AuthManager.apk')
+    apk.decode()
+
+    smali = apk.open_smali('com/miui/privacy/WNProvider.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'call'
+    specifier.parameters = 'Ljava/lang/String;Ljava/lang/String;Landroid/os/Bundle;'
+    specifier.return_type = 'Landroid/os/Bundle;'
+    old_body = smali.find_method(specifier)
+    new_body = '''\
+.method public call(Ljava/lang/String;Ljava/lang/String;Landroid/os/Bundle;)Landroid/os/Bundle;
+    .locals 4
+
+    const/4 p2, 0x0
+
+    if-eqz p3, :cond_0
+
+    new-instance v0, Landroid/os/Bundle;
+
+    invoke-direct {v0}, Landroid/os/Bundle;-><init>()V
+
+    const-string v1, "key_state"
+
+    const/4 v2, 0x0
+
+    invoke-virtual {v0, v1, v2}, Landroid/os/Bundle;->putInt(Ljava/lang/String;I)V
+
+    const-string v1, "key_has_ques"
+
+    invoke-virtual {v0, v1, v2}, Landroid/os/Bundle;->putBoolean(Ljava/lang/String;Z)V
+
+    invoke-static {p1}, Ljava/lang/Integer;->parseInt(Ljava/lang/String;)I
+
+    move-result v1
+
+    if-nez v1, :cond_1
+
+    return-object v0
+
+    :cond_1
+    const/4 v2, 0x1
+
+    if-ne v1, v2, :cond_0
+
+    invoke-static {}, Landroid/os/Message;->obtain()Landroid/os/Message;
+
+    move-result-object v2
+
+    invoke-virtual {v2, v0}, Landroid/os/Message;->setData(Landroid/os/Bundle;)V
+
+    const-string v3, "callback"
+
+    invoke-virtual {p3, v3}, Landroid/os/Bundle;->getParcelable(Ljava/lang/String;)Landroid/os/Parcelable;
+
+    move-result-object v3
+
+    check-cast v3, Landroid/os/Messenger;
+
+    if-eqz v3, :cond_0
+
+    :try_start_0
+    invoke-virtual {v3, v2}, Landroid/os/Messenger;->send(Landroid/os/Message;)V
+    :try_end_0
+    .catch Landroid/os/RemoteException; {:try_start_0 .. :try_end_0} :catch_0
+
+    goto :goto_0
+
+    :catch_0
+    move-exception p3
+
+    :cond_0
+    :goto_0
+    return-object p2
+.end method
+'''
+    smali.method_replace(old_body, new_body)
+
+    apk.build()
+
+
 def run_on_rom():
     rm_files()
     replace_analytics()
     remove_system_signature_check()
     patch_miui_service()
-    disable_sensitive_word_check()
     patch_package_installer()
     patch_theme_manager()
     patch_system_ui()
     remove_mms_ads()
     show_network_type_settings()
     patch_security_center()
+    disable_sensitive_word_check()
 
 
 def run_on_module():
@@ -702,6 +738,7 @@ def run_on_module():
     remove_mms_ads()
     show_network_type_settings()
     patch_security_center()
+    disable_sensitive_word_check()
 
 
 # Unused Code ==================================================================================
