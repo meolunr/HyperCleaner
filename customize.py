@@ -465,6 +465,7 @@ def show_network_type_settings():
     apk.build()
 
 
+@modified('product/priv-app/MIUISecurityCenter/MIUISecurityCenter.apk')
 def patch_security_center():
     apk = ApkFile('product/priv-app/MIUISecurityCenter/MIUISecurityCenter.apk')
     apk.decode()
@@ -630,6 +631,49 @@ def patch_security_center():
     specifier.return_type = 'Z'
     specifier.keywords.add('"key_check_item_root"')
     smali.method_return_boolean(specifier, False)
+
+    log('去除危险操作倒计时确认')
+    smali = apk.open_smali('com/miui/permcenter/privacymanager/model/InterceptBaseActivity.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'onCreate'
+    specifier.parameters = 'Landroid/os/Bundle;'
+
+    old_body = smali.find_method(specifier)
+    lines = old_body.splitlines()
+    locals_line = list(lines[1])
+    if int(locals_line[-1]) < 2:
+        locals_line[-1] = '2'
+    lines[1] = ''.join(locals_line)
+    new_body = '\n'.join(lines)
+
+    pattern = '''\
+    invoke-super {p0, p1}, Lmiuix/appcompat/app/AppCompatActivity;->onCreate\\(Landroid/os/Bundle;\\)V
+'''
+    repl = '''\\g<0>
+    if-nez p1, :cond_114514
+
+    new-instance v0, Landroid/os/Bundle;
+
+    invoke-direct {v0}, Landroid/os/Bundle;-><init>()V
+
+    move-object p1, v0
+
+    :cond_114514
+
+    const-string v0, "KET_STEP_COUNT"
+
+    const/4 v1, 0x0
+
+    invoke-virtual {p1, v0, v1}, Landroid/os/Bundle;->putInt(Ljava/lang/String;I)V
+
+    const-string v0, "KEY_ALLOW_ENABLE"
+
+    const/4 v1, 0x1
+
+    invoke-virtual {p1, v0, v1}, Landroid/os/Bundle;->putBoolean(Ljava/lang/String;Z)V
+'''
+    new_body = re.sub(pattern, repl, new_body)
+    smali.method_replace(old_body, new_body)
 
     apk.build()
 
