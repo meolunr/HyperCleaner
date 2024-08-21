@@ -75,7 +75,7 @@ def remove_system_signature_check():
     move-result ([v|p]\\d)
 '''
     repl = '''\
-    const/4 \\g<1>, 0x0
+    const/4 \\1, 0x0
 '''
     for smali in apk.find_smali('getMinimumSignatureSchemeVersionForTargetSdk'):
         old_body = smali.find_method(specifier)
@@ -216,13 +216,13 @@ def patch_theme_manager():
     const/4 ([v|p]\\d), 0x1
 '''
     repl = f'''\
-    check-cast \\g<1>, Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;
+    check-cast \\1, Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;
 
-    iget-object \\g<2>, \\g<1>, Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;->adInfo:Lcom/android/thememanager/basemodule/ad/model/AdInfoResponse;
+    iget-object \\2, \\1, Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;->adInfo:Lcom/android/thememanager/basemodule/ad/model/AdInfoResponse;
 
-    if-nez \\g<2>, :goto_{goto}
+    if-nez \\2, :goto_{goto}
 
-    const/4 \\g<2>, 0x1
+    const/4 \\2, 0x1
 '''
     new_body = re.sub(pattern, repl, old_body)
     smali.method_replace(old_body, new_body)
@@ -324,7 +324,7 @@ def patch_system_ui():
 
     invoke-virtual {v0, v1}, Ljava/util/ArrayList;->add(Ljava/lang/Object;)Z
 
-\\g<0>
+\\0
 '''
     new_body = re.sub(' {4}return-void', repl, old_body)
     smali.method_replace(old_body, new_body)
@@ -340,8 +340,8 @@ def patch_system_ui():
     pattern = '''\
     iget-object ([v|p]\\d), .+?, Lcom/android/systemui/statusbar/notification/row/MiuiNotificationMenuRow;->mSbn:Lcom/android/systemui/statusbar/notification/ExpandedNotification;
 '''
-    repl = '''\\g<0>
-    sput-object \\g<1>, Lcom/android/systemui/statusbar/notification/row/HcInjector;->sbn:Landroid/service/notification/StatusBarNotification;
+    repl = '''\\0
+    sput-object \\1, Lcom/android/systemui/statusbar/notification/row/HcInjector;->sbn:Landroid/service/notification/StatusBarNotification;
 '''
     new_body = re.sub(pattern, repl, old_body)
 
@@ -369,7 +369,7 @@ def patch_system_ui():
     invoke-static {{}}, Lcom/android/systemui/statusbar/notification/row/HcInjector;->makeChannelSettingIntent()Landroid/content/Intent;
 
     move-result-object {register1}
-\\g<1>
+\\1
     const/4 {register2}, 0x0
 
     sput-object {register2}, Lcom/android/systemui/statusbar/notification/row/HcInjector;->sbn:Landroid/service/notification/StatusBarNotification;
@@ -436,9 +436,9 @@ def remove_mms_ads():
     iput-boolean ([v|p]\\d), p0, L.+?;->.+?:Z
 '''
     repl = '''\
-    const/4 \\g<1>, 0x1
+    const/4 \\1, 0x1
 
-\\g<0>'''
+\\0'''
     for smali in apk.find_smali('final setHideButton'):
         old_body = smali.find_method(specifier)
         new_body = re.sub(pattern, repl, old_body)
@@ -668,7 +668,7 @@ def patch_security_center():
     pattern = '''\
     invoke-super {p0, p1}, Lmiuix/appcompat/app/AppCompatActivity;->onCreate\\(Landroid/os/Bundle;\\)V
 '''
-    repl = '''\\g<0>
+    repl = '''\\0
     if-nez p1, :cond_114514
 
     new-instance v0, Landroid/os/Bundle;
