@@ -4,11 +4,13 @@ MODIFY_PACKAGE = (
     'com.miui.packageinstaller',
     'com.android.thememanager',
     'com.android.systemui',
-    'com.android.mms'
+    'com.android.mms',
+    'com.android.phone',
+    'com.miui.securitycenter',
+    'com.lbe.security.miui'
 )
 
 unpack_partitions = {'product', 'system', 'system_ext', 'vendor'}
-remove_data_apps: set[str] = set()
 device: str
 version: str
 sdk: int

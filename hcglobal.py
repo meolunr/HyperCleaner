@@ -3,6 +3,7 @@ from datetime import datetime
 
 LIB_DIR = f'{sys.path[0]}/lib'
 MISC_DIR = f'{sys.path[0]}/misc'
+UPDATED_APP_JSON = 'product/UpdatedApp.json'
 
 
 def log(string: str):

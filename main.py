@@ -1,6 +1,7 @@
 import argparse
 import hashlib
 import io
+import json
 import os
 import re
 import shutil
@@ -13,7 +14,7 @@ import appupdate
 import config
 import customize
 import vbmeta
-from hcglobal import LIB_DIR, MISC_DIR, log
+from hcglobal import LIB_DIR, MISC_DIR, UPDATED_APP_JSON, log
 from util import imgfile, template
 
 
@@ -204,13 +205,22 @@ def generate_script():
             output.write(f'remapSuper {item}_a\n')
     var_flash_img = output.getvalue()
 
+    remove_data_apps: set[str] = set()
+    if os.path.isfile(UPDATED_APP_JSON):
+        with open(UPDATED_APP_JSON, 'r', encoding='utf-8') as f:
+            try:
+                data: dict = json.load(f)
+                remove_data_apps = data.get('rom', set())
+            except json.decoder.JSONDecodeError:
+                pass
+
     var_remove_data_app = ''
-    if config.remove_data_apps:
+    if remove_data_apps:
         output.seek(0)
         output.truncate(0)
         output.write('\nprint "- 更新系统应用"\n')
         output.write('lookupPackagePath\n')
-        for package in config.remove_data_apps:
+        for package in remove_data_apps:
             output.write(f'removeDataApp {package}\n')
         var_remove_data_app = output.getvalue()
 
@@ -250,7 +260,7 @@ def make_update_module():
     log('构建系统应用更新模块')
     os.chdir('appupdate')  # Temporary folder for testing
     appupdate.run_on_module()
-    if not os.path.isfile(appupdate.RECORD_JSON):
+    if not os.path.isfile(UPDATED_APP_JSON):
         return
     customize.run_on_module()
 

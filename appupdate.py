@@ -9,10 +9,8 @@ from zipfile import ZipFile
 
 import config
 from build.apkfile import ApkFile
-from hcglobal import LIB_DIR, MISC_DIR, log
+from hcglobal import LIB_DIR, MISC_DIR, UPDATED_APP_JSON, log
 from util import adb, template
-
-RECORD_JSON = 'product/UpdatedApp.json'
 
 
 class NewApp(object):
@@ -87,13 +85,13 @@ def get_app_in_system():
 
 def read_record():
     log('读取系统应用更新记录')
-    if not os.path.isfile(RECORD_JSON):
+    if not os.path.isfile(UPDATED_APP_JSON):
         if not os.path.isdir('product'):
             os.mkdir('product')
-        adb.pull(f'/{RECORD_JSON}', 'product')
-        open(RECORD_JSON, 'a').close()
+        adb.pull(f'/{UPDATED_APP_JSON}', 'product')
+        open(UPDATED_APP_JSON, 'a').close()
 
-    with open(RECORD_JSON, 'r', encoding='utf-8') as f:
+    with open(UPDATED_APP_JSON, 'r', encoding='utf-8') as f:
         try:
             data: dict = json.load(f)
             rom, module = set(data.get('rom', set())), set(data.get('module', set()))
@@ -105,7 +103,7 @@ def read_record():
 def write_record(*, rom: set = None, module: set = None):
     rom_to_be_written, module_to_be_written = read_record()
     log('写入系统应用更新记录')
-    with open(RECORD_JSON, 'w+', encoding='utf-8', newline='\n') as f:
+    with open(UPDATED_APP_JSON, 'w+', encoding='utf-8', newline='\n') as f:
         if rom is not None:
             rom_to_be_written = rom
         if module is not None:
@@ -182,19 +180,20 @@ def pull_apk_from_phone(app: NewApp):
 def run_on_rom():
     if check_adb_device():
         return
+    remove_data_apps = set()
     for app in fetch_updated_app():
         if app.version_code <= ApkFile(app.system_path_rom_with_apk).version_code():
             # Xiaomi has updated the apk in ROM
             continue
         log(f'更新系统应用: {app.system_path_rom}')
         pull_apk_from_phone(app)
-        config.remove_data_apps.add(app.package)
+        remove_data_apps.add(app.package)
 
         oat = f'{app.system_path_rom}/oat'
         if os.path.exists(oat):
             shutil.rmtree(oat)
 
-    write_record(rom=config.remove_data_apps, module=set())
+    write_record(rom=remove_data_apps, module=set())
 
 
 def run_on_module():
