@@ -41,7 +41,10 @@ def module_overlay(file: str):
     log(f'HCTest 文件覆盖: {file}')
     dir_name = f'{_MODULE_DIR}/{os.path.dirname(file)}'
     execute(f'mkdir -p {dir_name}')
-    push(file, dir_name)
+    if not file.startswith('system/'):
+        push(file, dir_name)
+    else:
+        push(f'system/{file}', dir_name)
 
     post_fs_data = f'{_MODULE_DIR}/post-fs-data.sh'
     mount = f'mount -o bind $MODDIR/{file} /{file}'

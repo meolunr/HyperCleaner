@@ -62,7 +62,7 @@ def replace_analytics():
         shutil.copy(f'{MISC_DIR}/BlankAnalytics.apk', analytics)
 
 
-def remove_system_signature_check():
+def patch_services():
     log('去除系统签名检查')
     apk = ApkFile('system/system/framework/services.jar')
     apk.decode()
@@ -82,12 +82,18 @@ def remove_system_signature_check():
         new_body = re.sub(pattern, repl, old_body)
         smali.method_replace(old_body, new_body)
 
+    # Remove the black screen when capturing display
+    smali = apk.open_smali('com/android/server/wm/WindowState.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'isSecureLocked'
+    smali.method_return_boolean(specifier, False)
+
     apk.build()
     for file in glob('system/system/framework/oat/arm64/services.*'):
         os.remove(file)
 
 
-def patch_miui_service():
+def patch_miui_services():
     apk = ApkFile('system_ext/framework/miui-services.jar')
     apk.decode()
 
@@ -116,6 +122,13 @@ def patch_miui_service():
 '''
     new_body = re.sub(pattern, '', old_body)
     smali.method_replace(old_body, new_body)
+
+    log('允许对任意应用截屏')
+    smali = apk.open_smali('com/android/server/wm/WindowManagerServiceImpl.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'notAllowCaptureDisplay'
+    specifier.parameters = 'Lcom/android/server/wm/RootWindowContainer;I'
+    smali.method_return_boolean(specifier, False)
 
     apk.build()
     for file in glob('system_ext/framework/**/miui-services.*', recursive=True):
@@ -783,8 +796,8 @@ def disable_sensitive_word_check():
 def run_on_rom():
     rm_files()
     replace_analytics()
-    remove_system_signature_check()
-    patch_miui_service()
+    patch_services()
+    patch_miui_services()
     patch_package_installer()
     patch_theme_manager()
     patch_system_ui()
