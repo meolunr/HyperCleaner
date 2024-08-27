@@ -7,7 +7,8 @@ MODIFY_PACKAGE = (
     'com.android.mms',
     'com.android.phone',
     'com.miui.securitycenter',
-    'com.lbe.security.miui'
+    'com.lbe.security.miui',
+    'com.xiaomi.market'
 )
 
 unpack_partitions = {'product', 'system', 'system_ext', 'vendor'}

@@ -1,10 +1,13 @@
+import io
 import os
 import re
 import shutil
+import string
 import sys
 from glob import glob
 from zipfile import ZipFile
 
+import config
 from build.apkfile import ApkFile
 from build.smali import MethodSpecifier
 from hcglobal import MISC_DIR, log
@@ -75,7 +78,7 @@ def patch_services():
     move-result ([v|p]\\d)
 '''
     repl = '''\
-    const/4 \\1, 0x0
+    const/4 \\g<1>, 0x0
 '''
     for smali in apk.find_smali('getMinimumSignatureSchemeVersionForTargetSdk'):
         old_body = smali.find_method(specifier)
@@ -229,13 +232,13 @@ def patch_theme_manager():
     const/4 ([v|p]\\d), 0x1
 '''
     repl = f'''\
-    check-cast \\1, Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;
+    check-cast \\g<1>, Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;
 
-    iget-object \\2, \\1, Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;->adInfo:Lcom/android/thememanager/basemodule/ad/model/AdInfoResponse;
+    iget-object \\g<2>, \\g<1>, Lcom/android/thememanager/router/recommend/entity/UIImageWithLink;->adInfo:Lcom/android/thememanager/basemodule/ad/model/AdInfoResponse;
 
-    if-nez \\2, :goto_{goto}
+    if-nez \\g<2>, :goto_{goto}
 
-    const/4 \\2, 0x1
+    const/4 \\g<2>, 0x1
 '''
     new_body = re.sub(pattern, repl, old_body)
     smali.method_replace(old_body, new_body)
@@ -337,7 +340,7 @@ def patch_system_ui():
 
     invoke-virtual {v0, v1}, Ljava/util/ArrayList;->add(Ljava/lang/Object;)Z
 
-\\0
+\\g<0>
 '''
     new_body = re.sub(' {4}return-void', repl, old_body)
     smali.method_replace(old_body, new_body)
@@ -353,8 +356,8 @@ def patch_system_ui():
     pattern = '''\
     iget-object ([v|p]\\d), .+?, Lcom/android/systemui/statusbar/notification/row/MiuiNotificationMenuRow;->mSbn:Lcom/android/systemui/statusbar/notification/ExpandedNotification;
 '''
-    repl = '''\\0
-    sput-object \\1, Lcom/android/systemui/statusbar/notification/row/HcInjector;->sbn:Landroid/service/notification/StatusBarNotification;
+    repl = '''\\g<0>
+    sput-object \\g<1>, Lcom/android/systemui/statusbar/notification/row/HcInjector;->sbn:Landroid/service/notification/StatusBarNotification;
 '''
     new_body = re.sub(pattern, repl, old_body)
 
@@ -382,7 +385,7 @@ def patch_system_ui():
     invoke-static {{}}, Lcom/android/systemui/statusbar/notification/row/HcInjector;->makeChannelSettingIntent()Landroid/content/Intent;
 
     move-result-object {register1}
-\\1
+\\g<1>
     const/4 {register2}, 0x0
 
     sput-object {register2}, Lcom/android/systemui/statusbar/notification/row/HcInjector;->sbn:Landroid/service/notification/StatusBarNotification;
@@ -449,9 +452,9 @@ def remove_mms_ads():
     iput-boolean ([v|p]\\d), p0, L.+?;->.+?:Z
 '''
     repl = '''\
-    const/4 \\1, 0x1
+    const/4 \\g<1>, 0x1
 
-\\0'''
+\\g<0>'''
     for smali in apk.find_smali('final setHideButton'):
         old_body = smali.find_method(specifier)
         new_body = re.sub(pattern, repl, old_body)
@@ -526,21 +529,21 @@ def patch_security_center():
     repl = f'''\
     invoke-static {{}}, {utils_type_signature}->{method_signature_3}
 
-    move-result-object \\1
+    move-result-object \\g<1>
 
     :try_start_114
-    invoke-static {{\\1}}, Ljava/lang/Integer;->parseInt(Ljava/lang/String;)I
+    invoke-static {{\\g<1>}}, Ljava/lang/Integer;->parseInt(Ljava/lang/String;)I
 
-    move-result \\1
+    move-result \\g<1>
     :try_end_514
     .catch Ljava/lang/NumberFormatException; {{:try_start_114 .. :try_end_514}} :catch_1919
 
     goto :goto_810
 
     :catch_1919
-    move-exception \\1
+    move-exception \\g<1>
 
-    const/4 \\1, -0x1
+    const/4 \\g<1>, -0x1
 
     :goto_810
 '''
@@ -569,12 +572,12 @@ def patch_security_center():
 (?:.|\\n)*?
     const/4 ([v|p]\\d), 0x5
 
-    if-le .+?, \\3, :cond_(\\d)
+    if-le .+?, \\g<3>, :cond_(\\d)
 
     :cond_\\d
-    move \\1, \\2
+    move \\g<1>, \\g<2>
 
-    :cond_\\4
+    :cond_\\g<4>
 '''
     match = re.search(pattern, old_body)
     register1 = match.group(1)
@@ -681,7 +684,7 @@ def patch_security_center():
     pattern = '''\
     invoke-super {p0, p1}, Lmiuix/appcompat/app/AppCompatActivity;->onCreate\\(Landroid/os/Bundle;\\)V
 '''
-    repl = '''\\0
+    repl = '''\\g<0>
     if-nez p1, :cond_114514
 
     new-instance v0, Landroid/os/Bundle;
@@ -793,6 +796,42 @@ def disable_sensitive_word_check():
     apk.build()
 
 
+@modified('product/app/MIUISuperMarket/MIUISuperMarket.apk')
+def not_update_modified_app():
+    log('不检查修改过的系统应用更新')
+    apk = ApkFile('product/app/MIUISuperMarket/MIUISuperMarket.apk')
+    apk.decode()
+
+    smali = apk.open_smali('com/xiaomi/market/data/LocalAppManager.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'getUpdateInfoFromServer'
+    old_body = smali.find_method(specifier)
+    pattern = '''\
+    invoke-direct/range {.+?}, Lcom/xiaomi/market/data/LocalAppManager;->loadInvalidSystemPackageList\\(\\)Ljava/util/List;
+
+    move-result-object ([v|p]\\d+?)
+'''
+    repl = '''\\g<0>
+    invoke-static {\\g<1>}, Lcom/xiaomi/market/data/HcInjector;->addModifiedPackages(Ljava/util/List;)V
+'''
+    new_body = re.sub(pattern, repl, old_body)
+    smali.method_replace(old_body, new_body)
+
+    # If the hccm (HyperCleaner Check Modified) file exists in the internal storage root directory, ignore adding packages
+    smali.add_affiliated_smali(f'{MISC_DIR}/smali/IgnoreAppUpdate.smali', 'HcInjector.smali')
+    smali = apk.open_smali('com/xiaomi/market/data/HcInjector.smali')
+    specifier.name = 'addModifiedPackages'
+    old_body = smali.find_method(specifier)
+    output = io.StringIO()
+    for package in config.MODIFY_PACKAGE:
+        output.write(f'    const-string v1, "{package}"\n\n')
+        output.write('    invoke-interface {p0, v1}, Ljava/util/List;->add(Ljava/lang/Object;)Z\n\n')
+    new_body = string.Template(old_body).safe_substitute(var_modify_package=output.getvalue())
+    smali.method_replace(old_body, new_body)
+
+    apk.build()
+
+
 def run_on_rom():
     rm_files()
     replace_analytics()
@@ -805,6 +844,7 @@ def run_on_rom():
     show_network_type_settings()
     patch_security_center()
     disable_sensitive_word_check()
+    not_update_modified_app()
 
 
 def run_on_module():
@@ -815,6 +855,7 @@ def run_on_module():
     show_network_type_settings()
     patch_security_center()
     disable_sensitive_word_check()
+    not_update_modified_app()
 
 
 # Unused Code ==================================================================================
