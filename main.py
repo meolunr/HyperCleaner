@@ -73,7 +73,7 @@ def read_rom_information():
 
 
 def custom_kernel(file: str):
-    if not file and not os.path.isfile(file):
+    if not file or not os.path.isfile(file):
         return
     log('自定义内核镜像')
     shutil.copy(file, 'boot/kernel')
