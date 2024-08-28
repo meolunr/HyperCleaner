@@ -258,7 +258,6 @@ def compress_zip():
 
 def make_update_module():
     log('构建系统应用更新模块')
-    os.chdir('appupdate')  # Temporary folder for testing
     appupdate.run_on_module()
     if not os.path.isfile(UPDATED_APP_JSON):
         return

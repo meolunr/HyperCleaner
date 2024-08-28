@@ -18,6 +18,8 @@ _MODIFIED_FLAG = b'HC-Mod'
 def modified(file: str):
     def decorator(func):
         def wrapper(*args, **kwargs):
+            if not os.path.isfile(file):
+                return
             f = ZipFile(file, 'r')
             comment = f.comment
             f.close()
