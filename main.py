@@ -66,8 +66,7 @@ def read_rom_information():
             if line.startswith('ro.product.product.name'):
                 config.device = getvalue(line)
             elif line.startswith('ro.product.build.version.incremental'):
-                sub_version = re.match(r'V\d+(\.\d+\.\d+\.\d+)\..+', getvalue(line)).group(1)
-                config.version = f'OS1{sub_version}'
+                config.version = re.match(r'(OS\d+\.\d+\.\d+\.\d+)\..+', getvalue(line)).group(1)
             elif line.startswith('ro.product.build.version.release'):
                 config.sdk = getvalue(line)
 
