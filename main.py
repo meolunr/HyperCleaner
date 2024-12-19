@@ -298,11 +298,12 @@ def main():
     parser.add_argument('zip', help='需要处理的 ROM 包')
     parser.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS, help='显示帮助信息')
     parser.add_argument('-k', '--kernel', help='自定义内核镜像')
+    parser.add_argument('-o', '--out-dir', help='输出文件夹', type=str, default='out')
     parser.add_subparsers().add_parser('appupdate', help='打包系统应用更新模块')
     args = parser.parse_args()
 
-    os.mkdir('out')
-    os.chdir('out')
+    os.mkdir(args.out_dir)
+    os.chdir(args.out_dir)
 
     start = datetime.now()
     if args.zip != 'appupdate':
