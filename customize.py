@@ -317,7 +317,7 @@ def patch_system_ui():
 
     # Disable historical notifications
     log('禁用历史通知')
-    smali = apk.open_smali('com/android/systemui/statusbar/notification/NotificationUtil.smali')
+    smali = apk.open_smali('com/miui/systemui/notification/MiuiBaseNotifUtil.smali')
     specifier = MethodSpecifier()
     specifier.name = 'shouldSuppressFold'
     smali.method_return_boolean(specifier, True)
@@ -369,15 +369,12 @@ def patch_system_ui():
     invoke-virtual {([v|p]\\d), .+?, .+?}, Landroid/content/Intent;->putExtra\\(Ljava/lang/String;Landroid/os/Bundle;\\)Landroid/content/Intent;)
 (?:.|\\n)*?
     return-void
-(?:.|\\n)*?
-    iget-object ([v|p]\\d), .+?, Lcom/android/systemui/statusbar/notification/row/MiuiNotificationMenuRow.+?
 '''
     match = re.search(pattern, new_body)
-    register1 = match.group(2)
-    register2 = match.group(3)
+    register = match.group(2)
 
     pattern = f'''\
-    new-instance {register1}, Landroid/content/Intent;
+    new-instance {register}, Landroid/content/Intent;
 (?:.|\\n)*?
 {re.escape(match.group(1))}
 ((?:.|\\n)*?)
@@ -386,11 +383,11 @@ def patch_system_ui():
     repl = f'''\
     invoke-static {{}}, Lcom/android/systemui/statusbar/notification/row/HcInjector;->makeChannelSettingIntent()Landroid/content/Intent;
 
-    move-result-object {register1}
+    move-result-object {register}
 \\g<1>
-    const/4 {register2}, 0x0
+    const/4 {register}, 0x0
 
-    sput-object {register2}, Lcom/android/systemui/statusbar/notification/row/HcInjector;->sbn:Landroid/service/notification/StatusBarNotification;
+    sput-object {register}, Lcom/android/systemui/statusbar/notification/row/HcInjector;->sbn:Landroid/service/notification/StatusBarNotification;
 
     return-void
 '''
