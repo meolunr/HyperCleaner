@@ -486,7 +486,7 @@ def patch_security_center():
     apk.decode()
 
     log('去除应用信息举报按钮')
-    smali = apk.open_smali('com/miui/appmanager/ApplicationsDetailsActivity.smali')
+    smali = apk.open_smali('com/miui/appmanager/fragment/ApplicationsDetailsFragment.smali')
     specifier = MethodSpecifier()
     specifier.parameters = 'Landroid/content/Context;Landroid/net/Uri;'
     specifier.return_type = 'Z'
@@ -495,7 +495,7 @@ def patch_security_center():
     smali.method_return_boolean(specifier, False)
 
     log('显示电池健康度')
-    smali = apk.find_smali('.class Lcom/miui/powercenter/nightcharge/SmartChargeFragment$', '.super Landroid/os/Handler;').pop()
+    smali = apk.find_smali('.class Lcom/miui/powercenter/nightcharge/ChargeProtectFragment$', '.super Landroid/os/Handler;').pop()
     specifier = MethodSpecifier()
     specifier.name = 'handleMessage'
     specifier.parameters = 'Landroid/os/Message;'
@@ -550,7 +550,7 @@ def patch_security_center():
     smali.method_replace(old_body, new_body)
 
     log('显示电池温度')
-    smali = apk.open_smali('com/miui/powercenter/nightcharge/SmartChargeFragment.smali')
+    smali = apk.open_smali('com/miui/powercenter/nightcharge/ChargeProtectFragment.smali')
     specifier = MethodSpecifier()
     specifier.parameters = 'Landroid/content/Context;'
     specifier.return_type = 'Ljava/lang/String;'
@@ -571,12 +571,12 @@ def patch_security_center():
 (?:.|\\n)*?
     const/4 ([v|p]\\d), 0x5
 
-    if-le .+?, \\g<3>, :cond_(\\d)
+    if-le .+?, \\3, :cond_(\\d)
 
     :cond_\\d
-    move \\g<1>, \\g<2>
+    move \\1, \\2
 
-    :cond_\\g<4>
+    :cond_\\4
 '''
     match = re.search(pattern, old_body)
     register1 = match.group(1)

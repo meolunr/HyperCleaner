@@ -28,6 +28,7 @@ def dump_payload():
     log('解包 payload.bin')
     payload = f'{LIB_DIR}/payload.exe'
     subprocess.run(f'{payload} -o images payload.bin', check=True)
+    os.remove('payload.bin')
 
 
 def remove_official_recovery():
