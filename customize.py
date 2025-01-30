@@ -93,6 +93,16 @@ def patch_services():
     specifier.name = 'isSecureLocked'
     smali.method_return_boolean(specifier, False)
 
+    # Bypass the bug in the APKEditor 1.4.2 version temporarily
+    methods = ('hashCode', 'toString', 'equals')
+    specifier.keywords.add('invoke-custom')
+    for smali in apk.find_smali('invoke-custom'):
+        for method in methods:
+            specifier.name = method
+            old_body = smali.find_method(specifier)
+            if old_body:
+                smali.method_replace(old_body, '')
+
     apk.build()
     for file in glob('system/system/framework/oat/arm64/services.*'):
         os.remove(file)
