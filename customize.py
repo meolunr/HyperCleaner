@@ -67,6 +67,19 @@ def replace_analytics():
         shutil.copy(f'{MISC_DIR}/BlankAnalytics.apk', analytics)
 
 
+# Bypass the bug in the APKEditor 1.4.2 version temporarily
+def temporary_for_build(apk: ApkFile):
+    methods = ('hashCode', 'toString', 'equals')
+    specifier = MethodSpecifier()
+    specifier.keywords.add('invoke-custom')
+    for smali in apk.find_smali('invoke-custom'):
+        for method in methods:
+            specifier.name = method
+            old_body = smali.find_method(specifier)
+            if old_body:
+                smali.method_replace(old_body, '')
+
+
 def patch_services():
     log('去除系统签名检查')
     apk = ApkFile('system/system/framework/services.jar')
@@ -93,16 +106,7 @@ def patch_services():
     specifier.name = 'isSecureLocked'
     smali.method_return_boolean(specifier, False)
 
-    # Bypass the bug in the APKEditor 1.4.2 version temporarily
-    methods = ('hashCode', 'toString', 'equals')
-    specifier.keywords.add('invoke-custom')
-    for smali in apk.find_smali('invoke-custom'):
-        for method in methods:
-            specifier.name = method
-            old_body = smali.find_method(specifier)
-            if old_body:
-                smali.method_replace(old_body, '')
-
+    temporary_for_build(apk)
     apk.build()
     for file in glob('system/system/framework/oat/arm64/services.*'):
         os.remove(file)
@@ -145,6 +149,7 @@ def patch_miui_services():
     specifier.parameters = 'Lcom/android/server/wm/RootWindowContainer;I'
     smali.method_return_boolean(specifier, False)
 
+    temporary_for_build(apk)
     apk.build()
     for file in glob('system_ext/framework/**/miui-services.*', recursive=True):
         if not os.path.samefile(apk.file, file):
