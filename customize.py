@@ -763,6 +763,20 @@ def disable_sensitive_word_check():
     apk.build()
 
 
+@modified('product/app/MiTrustService/MiTrustService.apk')
+def disable_mi_trust_service_mrm():
+    log('禁用 Mrm 风险检测')
+    apk = ApkFile('product/app/MiTrustService/MiTrustService.apk')
+    apk.decode()
+
+    smali = apk.open_smali('com/xiaomi/trustservice/remoteservice/eventhandle/statusEventHandle.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'initIMrmService'
+    smali.method_return_boolean(specifier, False)
+
+    apk.build()
+
+
 @modified('product/app/MIUISuperMarket/MIUISuperMarket.apk')
 def not_update_modified_app():
     log('不检查修改过的系统应用更新')
@@ -811,6 +825,7 @@ def run_on_rom():
     show_network_type_settings()
     patch_security_center()
     disable_sensitive_word_check()
+    disable_mi_trust_service_mrm()
     not_update_modified_app()
 
 
@@ -822,6 +837,7 @@ def run_on_module():
     show_network_type_settings()
     patch_security_center()
     disable_sensitive_word_check()
+    disable_mi_trust_service_mrm()
     not_update_modified_app()
 
 

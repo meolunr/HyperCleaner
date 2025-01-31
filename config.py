@@ -8,6 +8,7 @@ MODIFY_PACKAGE = (
     'com.android.phone',
     'com.miui.securitycenter',
     'com.lbe.security.miui',
+    'com.xiaomi.trustservice',
     'com.xiaomi.market'
 )
 
