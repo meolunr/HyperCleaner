@@ -1,7 +1,7 @@
 # HyperCleaner
 自用 HyperOS 官改制作工具
 
-适用于 HyperOS Android 14 高通骁龙 8 Gen2 / 8 Gen3 平台机型
+适用于 HyperOS Android 15 高通骁龙 8 Gen2 / 8 Gen3 平台机型
 
 ## 特性
 - 去除 Android 13+ 签名检查
@@ -19,7 +19,6 @@
 - 禁用历史通知折叠
 - 允许对任意应用截屏
 - 去除状态栏 HD 图标
-- 重定向通知渠道设置
 - 去除锁屏相机和负一屏
 - 去除短信广告
 - 显示网络类型设置
