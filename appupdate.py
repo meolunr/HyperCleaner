@@ -44,7 +44,7 @@ def check_adb_device() -> bool:
     elif num < 2:
         log('未检测到 adb 设备连接，不再进行系统应用更新')
         return True
-    elif num > 2:
+    else:
         log('检测到多个 adb 设备连接，不再进行系统应用更新')
         return True
 
@@ -139,6 +139,9 @@ def fetch_updated_app():
     path_map_data = get_app_in_data()
     path_map_system = get_app_in_system()
     for package, path_in_data in path_map_data.items():
+        # Skip xiaomi service framework
+        if package == 'com.xiaomi.xmsf':
+            continue
         app = NewApp(package, path_in_data, path_map_system[package])
         app.source = NewApp.Source.DATA
         app_map[package] = app
