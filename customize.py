@@ -200,10 +200,10 @@ def patch_package_installer():
     # Hide outdated switches
     xml = apk.open_xml('xml/settings.xml')
     root = xml.get_root()
-    for element in root.findall('miuix.preference.CheckBoxPreference'):
+    for element in root.findall('.//miuix.preference.CheckBoxPreference'):
         if element.get(xml.make_attr_key('android:key')) == 'pref_key_open_ads':
             element.set(xml.make_attr_key('app:isPreferenceVisible'), 'false')
-    for element in root.findall('miuix.preference.TextPreference'):
+    for element in root.findall('.//miuix.preference.TextPreference'):
         if element.get(xml.make_attr_key('android:key')) == 'pref_key_security_mode_security_verify_risk_app':
             element.set(xml.make_attr_key('app:isPreferenceVisible'), 'false')
     xml.commit()
