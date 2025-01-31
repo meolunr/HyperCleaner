@@ -589,7 +589,7 @@ def patch_security_center():
 {lines[0]}
     .locals 0
 
-    const/16 p0, 0x64
+    const/16 p0, 0x0
 
     return p0
 .end method
