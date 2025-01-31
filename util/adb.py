@@ -39,15 +39,15 @@ def install_test_module():
 
 def module_overlay(file: str):
     log(f'HCTest 文件覆盖: {file}')
-    dir_name = f'{_MODULE_DIR}/{os.path.dirname(file)}'
+    dir_name = f'{_MODULE_DIR}{os.path.dirname(file)}'
     execute(f'mkdir -p {dir_name}')
-    if not file.startswith('system/'):
-        push(file, dir_name)
+    if file.startswith('/system/'):
+        push(f'system{file}', dir_name)
     else:
-        push(f'system/{file}', dir_name)
+        push(file[1:], dir_name)
 
     post_fs_data = f'{_MODULE_DIR}/post-fs-data.sh'
-    mount = f'mount -o bind $MODDIR/{file} /{file}'
+    mount = f'mount -o bind $MODDIR{file} {file}'
     if f'{mount}\n' not in set(getoutput(f'cat {post_fs_data}')):
         execute(f"echo '{mount.replace('$', r'\$')}' | su -c 'tee -a {post_fs_data} > /dev/null'")
 
@@ -55,8 +55,8 @@ def module_overlay(file: str):
 def module_rm(file: str):
     log(f'HCTest 文件删除: {file}')
     dir_name = os.path.dirname(file)
-    execute(f'mkdir -p {_MODULE_DIR}/{dir_name}')
-    execute(f'mknod {_MODULE_DIR}/{file} c 0 0')
+    execute(f'mkdir -p {_MODULE_DIR}{dir_name}')
+    execute(f'mknod {_MODULE_DIR}{file} c 0 0')
 
 
 def get_apk_path(package: str):
