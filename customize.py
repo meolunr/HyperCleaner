@@ -362,53 +362,6 @@ def patch_system_ui():
     new_body = re.sub(' {4}return-void', repl, old_body)
     smali.method_replace(old_body, new_body)
 
-    log('重定向通知渠道设置')
-    smali = apk.find_smali('"com.android.settings.Settings$AppNotificationSettingsActivity"').pop()
-    smali.add_affiliated_smali(f'{MISC_DIR}/smali/NotificationChannel.smali', 'HcInjector.smali')
-    specifier = MethodSpecifier()
-    specifier.name = 'onClick'
-    specifier.parameters = 'Landroid/view/View;'
-
-    old_body = smali.find_method(specifier)
-    pattern = '''\
-    iget-object ([v|p]\\d), .+?, Lcom/android/systemui/statusbar/notification/row/MiuiNotificationMenuRow;->mSbn:Lcom/android/systemui/statusbar/notification/ExpandedNotification;
-'''
-    repl = '''\\g<0>
-    sput-object \\g<1>, Lcom/android/systemui/statusbar/notification/row/HcInjector;->sbn:Landroid/service/notification/StatusBarNotification;
-'''
-    new_body = re.sub(pattern, repl, old_body)
-
-    pattern = '''\
-(    const-string .+?, ":settings:show_fragment_args"
-(?:.|\n)*?
-    invoke-virtual {([v|p]\\d), .+?, .+?}, Landroid/content/Intent;->putExtra\\(Ljava/lang/String;Landroid/os/Bundle;\\)Landroid/content/Intent;)
-(?:.|\\n)*?
-    return-void
-'''
-    match = re.search(pattern, new_body)
-    register = match.group(2)
-
-    pattern = f'''\
-    new-instance {register}, Landroid/content/Intent;
-(?:.|\\n)*?
-{re.escape(match.group(1))}
-((?:.|\\n)*?)
-    return-void
-'''
-    repl = f'''\
-    invoke-static {{}}, Lcom/android/systemui/statusbar/notification/row/HcInjector;->makeChannelSettingIntent()Landroid/content/Intent;
-
-    move-result-object {register}
-\\g<1>
-    const/4 {register}, 0x0
-
-    sput-object {register}, Lcom/android/systemui/statusbar/notification/row/HcInjector;->sbn:Landroid/service/notification/StatusBarNotification;
-
-    return-void
-'''
-    new_body = re.sub(pattern, repl, new_body)
-    smali.method_replace(old_body, new_body)
-
     log('隐藏锁屏相机和负一屏')
     smali = apk.open_smali('com/android/keyguard/injector/KeyguardBottomAreaInjector.smali')
 
