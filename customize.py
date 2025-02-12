@@ -166,7 +166,7 @@ def patch_package_installer():
     specifier.parameters = 'Landroid/content/Context;Ljava/lang/String;'
     specifier.return_type = 'Z'
     specifier.keywords.add('getApplicationInfo')
-    for smali in apk.find_smali('"PackageUtil"'):
+    for smali in apk.find_smali('"PackageUtil"', '"getPackageVersionCode"'):
         smali.method_return_boolean(specifier, False)
 
     # Turn on the safe mode UI without enabling its features
