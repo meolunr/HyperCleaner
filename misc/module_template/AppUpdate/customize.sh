@@ -1,5 +1,6 @@
-REPLACE="
-$var_replace"
+# Do not try "REPLACE" again, this will invalidate the binding mount
+REMOVE="
+$var_remove_oat"
 
 enforce_install_from_app() {
 	if ! $BOOTMODE; then
