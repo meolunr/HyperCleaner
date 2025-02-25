@@ -1,5 +1,5 @@
-REMOVE="
-$var_remove_oat"
+REPLACE="
+$var_replace"
 
 enforce_install_from_app() {
 	if ! $BOOTMODE; then
