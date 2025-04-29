@@ -329,23 +329,11 @@ def patch_system_ui():
 
     # Hide the HD icon
     log('隐藏状态栏 HD 图标')
-    smali = apk.open_smali('com/android/systemui/statusbar/phone/MiuiIconManagerUtils.smali')
-    old_body = smali.find_constructor()
-    repl = '''\
-    const-string v1, "hd"
-
-    sget-object v0, Lcom/android/systemui/statusbar/phone/MiuiIconManagerUtils;->RIGHT_BLOCK_LIST:Ljava/util/ArrayList;
-
-    invoke-virtual {v0, v1}, Ljava/util/ArrayList;->add(Ljava/lang/Object;)Z
-
-    sget-object v0, Lcom/android/systemui/statusbar/phone/MiuiIconManagerUtils;->CONTROL_CENTER_BLOCK_LIST:Ljava/util/ArrayList;
-
-    invoke-virtual {v0, v1}, Ljava/util/ArrayList;->add(Ljava/lang/Object;)Z
-
-\\g<0>
-'''
-    new_body = re.sub(' {4}return-void', repl, old_body)
-    smali.method_replace(old_body, new_body)
+    smali = apk.open_smali('com/android/systemui/statusbar/policy/HDController.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'update'
+    specifier.parameters = ''
+    smali.method_nop(specifier)
 
     log('隐藏锁屏相机和负一屏')
     smali = apk.open_smali('com/android/keyguard/injector/KeyguardBottomAreaInjector.smali')
