@@ -4,12 +4,14 @@ import os
 import re
 import shutil
 import subprocess
+import xml.etree.ElementTree as eTree
 from enum import Enum, auto
 from zipfile import ZipFile
 
 import config
 from build.apkfile import ApkFile
-from hcglobal import LIB_DIR, MISC_DIR, UPDATED_APP_JSON, log
+from build.xml import XmlFile
+from hcglobal import LIB_DIR, MISC_DIR, UPDATED_APP_JSON, PRODUCT_PRIVILEGE_PERMISSION_XML, PRIVILEGE_PERMISSIONS, log
 from util import adb, template
 
 
@@ -163,7 +165,7 @@ def fetch_updated_app():
         app_map[package] = app
 
     load_version_code(app_map)
-    return app_map.values()
+    return set(app_map.values())
 
 
 def pull_apk_from_phone(app: NewApp):
@@ -180,11 +182,44 @@ def pull_apk_from_phone(app: NewApp):
         subprocess.run(f'{_7z} e -aoa {app.system_path_rom_with_apk} lib/arm64-v8a -o{app.system_path_rom}/lib/arm64', stdout=subprocess.DEVNULL)
 
 
+def update_privilege_permission(apps: set[NewApp]):
+    apps = {x for x in apps if x.system_path.startswith('/product/priv-app/')}
+    if len(apps) == 0:
+        return
+
+    is_rom_xml = os.path.isfile(PRODUCT_PRIVILEGE_PERMISSION_XML)
+    if not is_rom_xml:
+        # Pull from phone to add into ksu module
+        os.makedirs(os.path.dirname(PRODUCT_PRIVILEGE_PERMISSION_XML))
+        adb.pull(f'/{PRODUCT_PRIVILEGE_PERMISSION_XML}', PRODUCT_PRIVILEGE_PERMISSION_XML)
+    xml = XmlFile(PRODUCT_PRIVILEGE_PERMISSION_XML)
+    root = xml.get_root()
+
+    is_xml_updated = False
+    for app in apps:
+        element = root.find(f"privapp-permissions[@package='{app.package}']")
+        for perm in ApkFile(app.system_path_rom_with_apk).uses_permission() & PRIVILEGE_PERMISSIONS:
+            if element.find(f"permission[@name='{perm}']") is None:
+                is_xml_updated = is_xml_updated or True
+                log(f'新增特许权限: {app.package} -> {perm}')
+                new_permission = eTree.Element('permission')
+                new_permission.set('name', perm)
+                element.append(new_permission)
+
+    if is_xml_updated:
+        eTree.indent(root, '   ')
+        xml.commit()
+    else:
+        if not is_rom_xml:
+            shutil.rmtree('product/etc')
+
+
 def run_on_rom():
     if check_adb_device():
         return
+    apps = fetch_updated_app()
     packages = set()
-    for app in fetch_updated_app():
+    for app in apps:
         if app.version_code <= ApkFile(app.system_path_rom_with_apk).version_code():
             # Xiaomi has updated the apk in ROM
             continue
@@ -196,6 +231,7 @@ def run_on_rom():
         if os.path.exists(oat):
             shutil.rmtree(oat)
 
+    update_privilege_permission(apps)
     write_record(rom=packages, module=set())
 
 
@@ -219,6 +255,7 @@ def run_on_module():
         package_cache_output.write(f'rm -f /data/system/package_cache/*/{os.path.basename(app.system_path)}-*\n')
         mount_output.write(f'mount -o bind $MODDIR/{app.system_path_module} {app.system_path}\n')
 
+    update_privilege_permission(apps)
     write_record(module=packages)
     template.substitute(f'{MISC_DIR}/module_template/AppUpdate/customize.sh',
                         var_remove_oat=remove_oat_output.getvalue(), var_remove_data_app=remove_data_app_output.getvalue())
