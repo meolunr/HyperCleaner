@@ -95,8 +95,8 @@ class ManifestXml:
                 f.seek(-Chunk.SIZE, os.SEEK_CUR)
                 chunk = StartTagChunk(f)
                 name = self._get_string(chunk.name)
-                # Only manifest and application tag are parsed because we only need attributes in them
-                if name not in ('manifest', 'application'):
+                # Only parse these elements because we need their attributes
+                if name not in ('manifest', 'uses-permission', 'application'):
                     # Skip attributes of start tag
                     f.seek(chunk.attribute_count * StartTagChunk.Attribute.SIZE, os.SEEK_CUR)
                     continue
@@ -105,11 +105,13 @@ class ManifestXml:
                 self._parse_attribute(name, attributes)
 
     def _parse_attribute(self, name: str, attributes: list[StartTagChunk.Attribute]):
-        if name == 'manifest':
-            attribute_map = self.attributes
-        else:
-            attribute_map = {}
-            self.attributes[name] = attribute_map
+        match name:
+            case 'manifest':
+                pass
+            case 'uses-permission':
+                self.attributes.setdefault(name, set())
+            case _:
+                self.attributes[name] = {}
 
         for attribute in attributes:
             # resources.arsc not parsed
@@ -124,7 +126,14 @@ class ManifestXml:
                     attribute.data = attribute.data != 0
 
             key = f'{prefix}{self._get_string(attribute.name)}'
-            attribute_map[key] = attribute.data
+            match name:
+                case 'manifest':
+                    self.attributes[key] = attribute.data
+                case 'uses-permission':
+                    if key == 'android:name':
+                        self.attributes[name].add(attribute.data)
+                case _:
+                    self.attributes[name][key] = attribute.data
 
     def _get_string(self, idx: int):
         if idx in self._string_cache:

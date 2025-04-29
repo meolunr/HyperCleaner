@@ -71,8 +71,12 @@ class ApkFile:
     def extract_native_libs(self) -> bool | None:
         if not self._manifest_attributes:
             self._parse_manifest()
-        attribute_map: dict = self._manifest_attributes['application']
-        return attribute_map.get('android:extractNativeLibs', None)
+        return self._manifest_attributes['application'].get('android:extractNativeLibs', None)
+
+    def uses_permission(self):
+        if not self._manifest_attributes:
+            self._parse_manifest()
+        return self._manifest_attributes['uses-permission']
 
     def _parse_manifest(self):
         with ZipFile(self.file, 'r') as zip_file:
