@@ -19,21 +19,21 @@ def modified(file: str):
     def decorator(func):
         def wrapper(*args, **kwargs):
             if not os.path.isfile(file):
-                return
+                return None
             f = ZipFile(file, 'r')
             comment = f.comment
             f.close()
 
             if comment != _MODIFIED_FLAG:
                 result = func(*args, **kwargs)
-
                 with ZipFile(file, 'a') as f:
                     f.comment = _MODIFIED_FLAG
                 oat = f'{os.path.dirname(file)}/oat'
                 if os.path.exists(oat):
                     shutil.rmtree(oat)
-
                 return result
+            else:
+                return None
 
         return wrapper
 

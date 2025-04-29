@@ -35,7 +35,7 @@ class SmaliFile:
         self._apk = apk
         self._methods: dict[Method:str] = {}
 
-    def find_method(self, specifier: MethodSpecifier) -> str:
+    def find_method(self, specifier: MethodSpecifier) -> str | None:
         results = self._methods.keys()
         basic_conditions = {
             lambda x: True if specifier.name is None else x.name == specifier.name,
@@ -56,6 +56,8 @@ class SmaliFile:
 
         if len(results) == 1:
             return self._methods[results.pop()]
+        else:
+            return None
 
     def find_constructor(self, parameters: str = ''):
         results = self._methods.keys()
@@ -68,6 +70,8 @@ class SmaliFile:
 
         if len(results) == 1:
             return self._methods[results.pop()]
+        else:
+            return None
 
     def method_replace(self, old_method: str | MethodSpecifier, new_body: str):
         if type(old_method) is MethodSpecifier:

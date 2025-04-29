@@ -41,6 +41,7 @@ class ApkFile:
                     smali.parse_all_methods()
                     smali.parse_all_constructor()
                 return smali
+        return None
 
     def find_smali(self, *keywords: str):
         results = set()

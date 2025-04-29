@@ -37,17 +37,17 @@ def install_test_module():
     log(f'已安装 HC 测试模块，重启设备后生效')
 
 
-def module_overlay(file: str):
-    log(f'HCTest 文件覆盖: {file}')
-    dir_name = f'{_MODULE_DIR}{os.path.dirname(file)}'
+def module_overlay(phone_file: str):
+    log(f'HCTest 文件覆盖: {phone_file}')
+    dir_name = f'{_MODULE_DIR}{os.path.dirname(phone_file)}'
     execute(f'mkdir -p {dir_name}')
-    if file.startswith('/system/'):
-        push(f'system{file}', dir_name)
+    if phone_file.startswith('/system/'):
+        push(f'system{phone_file}', dir_name)
     else:
-        push(file[1:], dir_name)
+        push(phone_file[1:], dir_name)
 
     post_fs_data = f'{_MODULE_DIR}/post-fs-data.sh'
-    mount = f'mount -o bind $MODDIR{file} {file}'
+    mount = f'mount -o bind $MODDIR{phone_file} {phone_file}'
     if f'{mount}\n' not in set(getoutput(f'cat {post_fs_data}')):
         execute(f"echo '{mount.replace('$', r'\$')}' | su -c 'tee -a {post_fs_data} > /dev/null'")
 

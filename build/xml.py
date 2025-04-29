@@ -27,3 +27,4 @@ class XmlFile:
         for k, v in _NAMESPACES.items():
             if k == splits[0]:
                 return f'{{{v}}}{splits[1]}'
+        return None
