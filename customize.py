@@ -599,6 +599,14 @@ def patch_security_center():
     specifier.keywords.add('"fuxi"')
     smali.method_return_boolean(specifier, True)
 
+    log('禁用耗电项优化建议')
+    smali = apk.find_smali('"key_show_battery_power_save_suggest"').pop()
+    specifier = MethodSpecifier()
+    specifier.is_static = True
+    specifier.return_type = 'Z'
+    specifier.keywords.add('"key_show_battery_power_save_suggest"')
+    smali.method_return_boolean(specifier, False)
+
     log('禁用 Root 权限检查')
     smali = apk.find_smali('"key_check_item_root"').pop()
     specifier = MethodSpecifier()
