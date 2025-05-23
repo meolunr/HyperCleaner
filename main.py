@@ -18,17 +18,10 @@ from hcglobal import LIB_DIR, MISC_DIR, UPDATED_APP_JSON, log
 from util import imgfile, template
 
 
-def unzip(file: str):
-    log(f'解压 {file}')
-    _7z = f'{LIB_DIR}/7za.exe'
-    subprocess.run(f'{_7z} e {file} payload.bin', check=True)
-
-
-def dump_payload():
-    log('解包 payload.bin')
-    payload = f'{LIB_DIR}/payload.exe'
-    subprocess.run(f'{payload} -o images payload.bin', check=True)
-    os.remove('payload.bin')
+def dump_payload(file: str):
+    log(f'解压 Payload: {file}')
+    payload_extract = f'{LIB_DIR}/payload_extract.exe'
+    subprocess.run(f'{payload_extract} -x -i {file} -o images', check=True)
 
 
 def remove_official_recovery():
@@ -252,8 +245,9 @@ def compress_zip():
     md5 = hashlib.md5()
     with open('tmp.zip', 'rb') as f:
         md5.update(f.read())
-    file_hash = md5.hexdigest()[:10]
-    os.rename('tmp.zip', f'HC_{config.device}_{config.version}_{file_hash}_{config.sdk}.zip')
+    file_name = f'HC_{config.device}_{config.version}_{md5.hexdigest()[:10]}_{config.sdk}.zip'
+    os.rename('tmp.zip', file_name)
+    log(f'刷机包文件: {os.path.abspath(file_name).replace('\\', '/')}')
 
 
 def make_update_module():
@@ -276,8 +270,7 @@ def make_update_module():
 
 def make_rom(args: argparse.Namespace):
     log('构建全量包')
-    unzip(args.zip)
-    dump_payload()
+    dump_payload(args.zip)
     remove_official_recovery()
     unpack_img()
     read_rom_information()
