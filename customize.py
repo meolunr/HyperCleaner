@@ -327,48 +327,6 @@ def patch_system_ui():
     specifier.parameters = 'Lcom/android/systemui/statusbar/notification/collection/NotifPipeline;'
     smali.method_nop(specifier)
 
-    # Hide the HD icon
-    log('隐藏状态栏 HD 图标')
-    smali = apk.open_smali('com/android/systemui/statusbar/policy/HDController.smali')
-    specifier = MethodSpecifier()
-    specifier.name = 'update'
-    specifier.parameters = ''
-    smali.method_nop(specifier)
-
-    log('隐藏锁屏相机和负一屏')
-    smali = apk.open_smali('com/android/keyguard/injector/KeyguardBottomAreaInjector.smali')
-
-    specifier = MethodSpecifier()
-    specifier.name = 'updateIcons'
-    old_body = smali.find_method(specifier)
-    new_body = '''\
-.method public final updateIcons()V
-    .locals 2
-
-    const/16 v0, 0x8
-
-    iget-object v1, p0, Lcom/android/keyguard/injector/KeyguardBottomAreaInjector;->mLeftAffordanceViewLayout:Landroid/widget/LinearLayout;
-
-    if-eqz v1, :cond_0
-
-    invoke-virtual {v1, v0}, Landroid/widget/LinearLayout;->setVisibility(I)V
-
-    :cond_0
-    iget-object v1, p0, Lcom/android/keyguard/injector/KeyguardBottomAreaInjector;->mRightAffordanceViewLayout:Landroid/widget/LinearLayout;
-
-    if-eqz v1, :cond_1
-
-    invoke-virtual {v1, v0}, Landroid/widget/LinearLayout;->setVisibility(I)V
-
-    :cond_1
-    return-void
-.end method
-'''
-    smali.method_replace(old_body, new_body)
-
-    specifier.name = 'updateRightAffordanceViewLayoutVisibility'
-    smali.method_nop(specifier)
-
     apk.build()
 
 

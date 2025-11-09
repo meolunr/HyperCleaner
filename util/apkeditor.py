@@ -8,7 +8,10 @@ def decode(file: str, output: str, resource_type: str = 'xml'):
 
 
 def build(dir_path: str, output: str):
-    subprocess.run(f'java -jar {LIB_DIR}/APKEditor.jar b -dex-lib internal -f -i {dir_path} -o {output}', stderr=subprocess.STDOUT)
+    if not dir_path.endswith('MIUISuperMarket.apk.out'):
+        subprocess.run(f'java -jar {LIB_DIR}/APKEditor.jar b -dex-lib internal -f -i {dir_path} -o {output}', stderr=subprocess.STDOUT)
+    else:
+        subprocess.run(f'java -jar {LIB_DIR}/APKEditor.jar b -f -i {dir_path} -o {output}', stderr=subprocess.STDOUT)
 
 
 def refactor(file: str, output: str):
