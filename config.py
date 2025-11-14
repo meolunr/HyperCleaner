@@ -1,5 +1,6 @@
-SUPER_SIZE = 9126805504
-SUPER_PARTITIONS = ('mi_ext', 'odm', 'product', 'system', 'system_dlkm', 'system_ext', 'vendor', 'vendor_dlkm')
+SUPER_SIZE = 15354134528
+SUPER_PARTITIONS = ('system', 'system_ext', 'system_dlkm', 'product', 'vendor', 'vendor_dlkm', 'odm',
+                    'my_bigball', 'my_carrier', 'my_company', 'my_engineering', 'my_heytap', 'my_manifest', 'my_preload', 'my_product', 'my_region', 'my_stock')
 MODIFY_PACKAGE = (
     'com.miui.packageinstaller',
     'com.android.thememanager',

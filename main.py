@@ -55,13 +55,13 @@ def read_rom_information():
     def getvalue(prop: str):
         return prop.rstrip().split('=')[1]
 
-    with open('product/etc/build.prop', 'r', encoding='utf-8') as f:
+    with open('my_manifest/build.prop', 'r', encoding='utf-8') as f:
         for line in f:
-            if line.startswith('ro.product.product.name'):
+            if line.startswith('ro.product.name'):
                 config.device = getvalue(line)
-            elif line.startswith('ro.product.build.version.incremental'):
-                config.version = re.match(r'(OS\d+\.\d+\.\d+\.\d+)\..+', getvalue(line)).group(1)
-            elif line.startswith('ro.product.build.version.release'):
+            elif line.startswith('ro.build.display.id'):
+                config.version = re.match(r'.+_(\d+\.\d+\.\d+\.\d+)\(.+', getvalue(line)).group(1)
+            elif line.startswith('ro.build.version.release'):
                 config.sdk = getvalue(line)
 
 
