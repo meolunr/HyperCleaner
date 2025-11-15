@@ -85,12 +85,13 @@ def disable_avb_and_dm_verity():
             lines = f.readlines()
             for i, line in enumerate(lines):
                 # Remove avb
-                line = re.sub(',avb(?:=.+?,|,)', ',', line)
+                line = re.sub(',avb=.+?,', ',', line)
                 line = re.sub(',avb_keys=.+avbpubkey', '', line)
+                line = re.sub(',avb_keys=.+pubkey', '', line)
                 # Remove forced data encryption
                 line = re.sub(',fileencryption=.+?,', ',', line)
-                line = re.sub(',metadata_encryption=.+?,', ',', line)
                 line = re.sub(',keydirectory=.+?,', ',', line)
+                line = re.sub(',metadata_encryption=.+?,', ',', line)
                 lines[i] = line
             f.seek(0)
             f.truncate()
