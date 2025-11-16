@@ -154,8 +154,9 @@ def repack_img():
                 subprocess.run(f'{magiskboot} repack boot.img ../{file}', check=True)
                 os.chdir('..')
 
-    log('清空 cust 分区')
-    shutil.copy(f'{MISC_DIR}/BlankCust.img', 'images/cust.img')
+    log('清空 my_company 和 my_preload 分区')
+    shutil.copy(f'{MISC_DIR}/BlankErofs.img', 'images/my_company.img')
+    shutil.copy(f'{MISC_DIR}/BlankErofs.img', 'images/my_preload.img')
 
 
 def repack_super():
