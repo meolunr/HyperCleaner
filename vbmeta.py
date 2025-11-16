@@ -162,7 +162,7 @@ class VbMeta:
         return vbmeta_blob
 
 
-def patch(vbmeta_file: str, boot_file: str):
+def patch(vbmeta_file: str):
     avb = VbMeta(vbmeta_file)
 
     # Remove the verification data for vbmeta
@@ -182,19 +182,6 @@ def patch(vbmeta_file: str, boot_file: str):
     avb.header.rollback_index = 0
     # Disable verity and verification
     avb.header.flags = AvbHeader.FLAG_DISABLE_VERITY | AvbHeader.FLAG_DISABLE_VERIFICATION
-
-    # Copy avb property descriptors from boot.img
-    if os.path.basename(vbmeta_file) == 'vbmeta.img':
-        for desc in VbMeta(boot_file).descriptors:
-            if not isinstance(desc, AvbPropertyDescriptor):
-                continue
-            match desc.key:
-                case 'com.android.build.boot.os_version':
-                    avb.descriptors.insert(0, desc)
-                case 'com.android.build.boot.fingerprint':
-                    avb.descriptors.insert(1, desc)
-                case 'com.android.build.boot.security_patch':
-                    avb.descriptors.insert(2, desc)
 
     existing = set()
     for desc in avb.descriptors[:]:

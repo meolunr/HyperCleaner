@@ -82,7 +82,7 @@ def custom_kernel(file: str):
 def patch_vbmeta():
     for img in glob('vbmeta*.img', root_dir='images'):
         log(f'修补 vbmeta: {img}')
-        vbmeta.patch(f'images/{img}', 'images/boot.img')
+        vbmeta.patch(f'images/{img}')
 
 
 def disable_avb_and_dm_verity():
