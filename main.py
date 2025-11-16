@@ -34,11 +34,12 @@ def remove_official_recovery():
 def unpack_img():
     extract_erofs = f'{LIB_DIR}/extract.erofs.exe'
     magiskboot = f'{LIB_DIR}/magiskboot.exe'
+    partition_filesystem = {}
 
     for partition in config.unpack_partitions:
         img = f'{partition}.img'
         file = f'images/{img}'
-        filesystem = imgfile.file_system(file)
+        filesystem = imgfile.filesystem(file)
         log(f'提取分区文件: {img}, 格式: {filesystem}')
         match filesystem:
             case imgfile.FileSystem.EROFS:
@@ -49,6 +50,12 @@ def unpack_img():
                 os.chdir(partition)
                 subprocess.run(f'{magiskboot} unpack {img}', check=True)
                 os.chdir('..')
+        partition_filesystem[partition] = filesystem.name
+
+    if not os.path.isdir('config'):
+        os.mkdir('config')
+    with open('config/partition_filesystem.json', 'w', encoding='utf-8', newline='\n') as f:
+        json.dump(partition_filesystem, f, indent=4)
 
 
 def read_rom_information():
@@ -128,11 +135,14 @@ def handle_pangu_overlay():
 def repack_img():
     mkfs_erofs = f'{LIB_DIR}/mkfs.erofs.exe'
     magiskboot = f'{LIB_DIR}/magiskboot.exe'
+    with open('config/partition_filesystem.json', 'r', encoding='utf-8') as f:
+        partition_filesystem: dict = json.load(f)
 
     for partition in config.unpack_partitions:
         log(f'打包分区文件: {partition}')
         file = f'images/{partition}.img'
-        match imgfile.file_system(file):
+        filesystem = imgfile.FileSystem[partition_filesystem[partition]]
+        match filesystem:
             case imgfile.FileSystem.EROFS:
                 imgfile.sync_app_perm_and_context(partition)
                 fs_config = f'config/{partition}_fs_config'
