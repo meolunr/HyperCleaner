@@ -4,7 +4,7 @@ import subprocess
 from hcglobal import MISC_DIR, log
 
 _DATA_TMP_DIR = '/data/local/tmp'
-_MODULE_DIR = '/data/adb/modules/hypercleaner'
+_MODULE_DIR = '/data/adb/modules/colorcleaner'
 
 
 def execute(command: str):
@@ -31,10 +31,10 @@ def pull(src: str, dst: str):
 
 
 def install_test_module():
-    subprocess.run(f'adb push {MISC_DIR}/module_template/HCTestModule.zip /sdcard', stdout=subprocess.DEVNULL)
-    execute('ksud module install /sdcard/HCTestModule.zip')
-    execute('rm -f /sdcard/HCTestModule.zip')
-    log(f'已安装 HC 测试模块，重启设备后生效')
+    subprocess.run(f'adb push {MISC_DIR}/module_template/CCTestModule.zip /sdcard', stdout=subprocess.DEVNULL)
+    execute('ksud module install /sdcard/CCTestModule.zip')
+    execute('rm -f /sdcard/CCTestModule.zip')
+    log(f'已安装 CC 测试模块，重启设备后生效')
 
 
 def module_overlay(phone_file: str):
@@ -52,11 +52,12 @@ def module_overlay(phone_file: str):
         execute(f"echo '{mount.replace('$', r'\$')}' | su -c 'tee -a {post_fs_data} > /dev/null'")
 
 
-def module_rm(file: str):
-    log(f'HCTest 文件删除: {file}')
-    dir_name = os.path.dirname(file)
-    execute(f'mkdir -p {_MODULE_DIR}{dir_name}')
-    execute(f'mknod {_MODULE_DIR}{file} c 0 0')
+def module_rm(phone_file: str):
+    log(f'CCTest 文件删除: {phone_file}')
+    if not phone_file.startswith('/system/'):
+        phone_file = f'/system{phone_file}'
+    execute(f'mkdir -p {_MODULE_DIR}{os.path.dirname(phone_file)}')
+    execute(f'mknod {_MODULE_DIR}{phone_file} c 0 0')
 
 
 def get_apk_path(package: str):
