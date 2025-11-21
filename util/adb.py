@@ -8,11 +8,11 @@ _MODULE_DIR = '/data/adb/modules/colorcleaner'
 
 
 def execute(command: str):
-    subprocess.run(f'adb shell su -c {command}')
+    return subprocess.run(f'''adb shell "su -c '{command}'"''').returncode
 
 
 def getoutput(command: str):
-    popen = subprocess.Popen(f'adb shell su -c {command}', stdout=subprocess.PIPE, universal_newlines=True)
+    popen = subprocess.Popen(f'''adb shell "su -c '{command}'"''', stdout=subprocess.PIPE, universal_newlines=True)
     return popen.stdout
 
 
@@ -52,12 +52,27 @@ def module_overlay(phone_file: str):
         execute(f"echo '{mount.replace('$', r'\$')}' | su -c 'tee -a {post_fs_data} > /dev/null'")
 
 
-def module_rm(phone_file: str):
-    log(f'CCTest 文件删除: {phone_file}')
-    if not phone_file.startswith('/system/'):
-        phone_file = f'/system{phone_file}'
-    execute(f'mkdir -p {_MODULE_DIR}{os.path.dirname(phone_file)}')
-    execute(f'mknod {_MODULE_DIR}{phone_file} c 0 0')
+def module_rm(phone_path: str):
+    log(f'CCTest 文件删除: {phone_path}')
+    if phone_path.startswith('/system/'):
+        module_rm_path = phone_path
+    else:
+        module_rm_path = f'/system{phone_path}'
+
+    if phone_path.startswith('/my_'):
+        if is_dir(phone_path):
+            execute(f'mkdir -p {_MODULE_DIR}{module_rm_path}')
+            execute(f'touch {_MODULE_DIR}{module_rm_path}/.replace')
+        else:
+            execute(f'mkdir -p {_MODULE_DIR}{os.path.dirname(module_rm_path)}')
+            execute(f'touch {_MODULE_DIR}{module_rm_path}')
+    else:
+        execute(f'mkdir -p {_MODULE_DIR}{os.path.dirname(module_rm_path)}')
+        execute(f'mknod {_MODULE_DIR}{module_rm_path} c 0 0')
+
+
+def is_dir(phone_path: str):
+    return execute(f'test -d {phone_path}') == 0
 
 
 def get_apk_path(package: str):
