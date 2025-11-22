@@ -53,7 +53,10 @@ def rm_files():
                 continue
             if os.path.exists(item):
                 log(f'删除文件: {item}')
-                shutil.rmtree(item)
+                if os.path.isdir(item):
+                    shutil.rmtree(item)
+                else:
+                    os.remove(item)
             else:
                 log(f'文件不存在: {item}')
 
@@ -754,18 +757,18 @@ def not_update_modified_app():
 
 def run_on_rom():
     rm_files()
-    replace_analytics()
-    patch_services()
-    patch_miui_services()
-    patch_package_installer()
-    patch_theme_manager()
-    patch_system_ui()
-    remove_mms_ads()
-    show_network_type_settings()
-    patch_security_center()
-    disable_sensitive_word_check()
-    disable_mi_trust_service_mrm()
-    not_update_modified_app()
+    # replace_analytics()
+    # patch_services()
+    # patch_miui_services()
+    # patch_package_installer()
+    # patch_theme_manager()
+    # patch_system_ui()
+    # remove_mms_ads()
+    # show_network_type_settings()
+    # patch_security_center()
+    # disable_sensitive_word_check()
+    # disable_mi_trust_service_mrm()
+    # not_update_modified_app()
 
 
 def run_on_module():
