@@ -17,7 +17,6 @@ def getoutput(command: str):
 
 
 def push(src: str, dst: str):
-    log(f'推送设备文件: {dst}')
     tmp_file = f'{_DATA_TMP_DIR}/{os.path.basename(src)}'
     subprocess.run(f'adb push {src} {_DATA_TMP_DIR}', stdout=subprocess.DEVNULL)
     # Use cp and rm commands to avoid moving file permissions simultaneously
@@ -37,38 +36,40 @@ def install_test_module():
     log(f'已安装 CC 测试模块，重启设备后生效')
 
 
-def module_overlay(phone_file: str):
-    log(f'HCTest 文件覆盖: {phone_file}')
-    dir_name = f'{_MODULE_DIR}{os.path.dirname(phone_file)}'
-    execute(f'mkdir -p {dir_name}')
-    if phone_file.startswith('/system/'):
-        push(f'system{phone_file}', dir_name)
+def module_push(src_path: str, phone_path: str):
+    log(f'CCTest 文件推送: {phone_path}')
+    if phone_path.startswith('/system/'):
+        overlay_dir_path = f'{_MODULE_DIR}{os.path.dirname(phone_path)}'
     else:
-        push(phone_file[1:], dir_name)
-
-    post_fs_data = f'{_MODULE_DIR}/post-fs-data.sh'
-    mount = f'mount -o bind $MODDIR{phone_file} {phone_file}'
-    if f'{mount}\n' not in set(getoutput(f'cat {post_fs_data}')):
-        execute(f"echo '{mount.replace('$', r'\$')}' | su -c 'tee -a {post_fs_data} > /dev/null'")
+        overlay_dir_path = f'{_MODULE_DIR}{os.path.dirname(f'/system{phone_path}')}'
+    execute(f'mkdir -p {overlay_dir_path}')
+    push(src_path, overlay_dir_path)
 
 
 def module_rm(phone_path: str):
     log(f'CCTest 文件删除: {phone_path}')
     if phone_path.startswith('/system/'):
-        module_rm_path = phone_path
+        rm_path = phone_path
     else:
-        module_rm_path = f'/system{phone_path}'
+        rm_path = f'/system{phone_path}'
 
     if phone_path.startswith('/my_'):
         if is_dir(phone_path):
-            execute(f'mkdir -p {_MODULE_DIR}{module_rm_path}')
-            execute(f'touch {_MODULE_DIR}{module_rm_path}/.replace')
+            execute(f'mkdir -p {_MODULE_DIR}{rm_path}')
+            execute(f'touch {_MODULE_DIR}{rm_path}/.replace')
         else:
-            execute(f'mkdir -p {_MODULE_DIR}{os.path.dirname(module_rm_path)}')
-            execute(f'touch {_MODULE_DIR}{module_rm_path}')
+            execute(f'mkdir -p {_MODULE_DIR}{os.path.dirname(rm_path)}')
+            execute(f'touch {_MODULE_DIR}{rm_path}')
     else:
-        execute(f'mkdir -p {_MODULE_DIR}{os.path.dirname(module_rm_path)}')
-        execute(f'mknod {_MODULE_DIR}{module_rm_path} c 0 0')
+        execute(f'mkdir -p {_MODULE_DIR}{os.path.dirname(rm_path)}')
+        execute(f'mknod {_MODULE_DIR}{rm_path} c 0 0')
+
+
+def module_overlay(phone_path: str):
+    if phone_path.startswith('/system/'):
+        module_push(f'system{phone_path}', phone_path)
+    else:
+        module_push(phone_path[1:], phone_path)
 
 
 def is_dir(phone_path: str):
