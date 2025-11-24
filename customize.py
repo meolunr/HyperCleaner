@@ -686,85 +686,17 @@ def patch_security_center():
     apk.build()
 
 
-@modified('system_ext/priv-app/AuthManager/AuthManager.apk')
+@modified('system_ext/priv-app/Settings/Settings.apk')
 def disable_sensitive_word_check():
     log('禁用设备名称敏感词检查')
-    apk = ApkFile('system_ext/priv-app/AuthManager/AuthManager.apk')
+    apk = ApkFile('system_ext/priv-app/Settings/Settings.apk')
     apk.decode()
 
-    smali = apk.open_smali('com/miui/privacy/WNProvider.smali')
+    smali = apk.open_smali('com/oplus/settings/feature/deviceinfo/aboutphone/PhoneNameVerifyUtil.smali')
     specifier = MethodSpecifier()
-    specifier.name = 'call'
-    specifier.parameters = 'Ljava/lang/String;Ljava/lang/String;Landroid/os/Bundle;'
-    specifier.return_type = 'Landroid/os/Bundle;'
-    old_body = smali.find_method(specifier)
-    new_body = '''\
-.method public call(Ljava/lang/String;Ljava/lang/String;Landroid/os/Bundle;)Landroid/os/Bundle;
-    .locals 4
-
-    const/4 p2, 0x0
-
-    if-eqz p3, :cond_0
-
-    new-instance v0, Landroid/os/Bundle;
-
-    invoke-direct {v0}, Landroid/os/Bundle;-><init>()V
-
-    const-string v1, "key_state"
-
-    const/4 v2, 0x0
-
-    invoke-virtual {v0, v1, v2}, Landroid/os/Bundle;->putInt(Ljava/lang/String;I)V
-
-    const-string v1, "key_has_ques"
-
-    invoke-virtual {v0, v1, v2}, Landroid/os/Bundle;->putBoolean(Ljava/lang/String;Z)V
-
-    invoke-static {p1}, Ljava/lang/Integer;->parseInt(Ljava/lang/String;)I
-
-    move-result v1
-
-    if-nez v1, :cond_1
-
-    return-object v0
-
-    :cond_1
-    const/4 v2, 0x1
-
-    if-ne v1, v2, :cond_0
-
-    invoke-static {}, Landroid/os/Message;->obtain()Landroid/os/Message;
-
-    move-result-object v2
-
-    invoke-virtual {v2, v0}, Landroid/os/Message;->setData(Landroid/os/Bundle;)V
-
-    const-string v3, "callback"
-
-    invoke-virtual {p3, v3}, Landroid/os/Bundle;->getParcelable(Ljava/lang/String;)Landroid/os/Parcelable;
-
-    move-result-object v3
-
-    check-cast v3, Landroid/os/Messenger;
-
-    if-eqz v3, :cond_0
-
-    :try_start_0
-    invoke-virtual {v3, v2}, Landroid/os/Messenger;->send(Landroid/os/Message;)V
-    :try_end_0
-    .catch Landroid/os/RemoteException; {:try_start_0 .. :try_end_0} :catch_0
-
-    goto :goto_0
-
-    :catch_0
-    move-exception p3
-
-    :cond_0
-    :goto_0
-    return-object p2
-.end method
-'''
-    smali.method_replace(old_body, new_body)
+    specifier.name = 'activeNeedServerVerify'
+    specifier.parameters = 'Ljava/lang/String;'
+    smali.method_return_boolean(specifier, False)
 
     apk.build()
 
@@ -845,29 +777,3 @@ def run_on_module():
     disable_sensitive_word_check()
     disable_mi_trust_service_mrm()
     not_update_modified_app()
-
-
-# Unused Code ==================================================================================
-# SecurityCenter
-def disable_wifi_blocked_notification(apk_file: ApkFile):
-    smali_file = apk_file.open_smali('com/miui/networkassistant/utils/NotificationUtil.smali')
-    specifier = MethodSpecifier()
-    specifier.name = 'sendWifiNetworkBlockedNotify'
-    smali_file.method_nop(specifier)
-
-
-# PowerKeeper
-def disable_cloud_control(apk_file: ApkFile):
-    smali_file = apk_file.open_smali('com/miui/powerkeeper/cloudcontrol/LocalUpdateUtils.smali')
-    specifier = MethodSpecifier()
-    specifier.name = 'startCloudSyncData'
-    smali_file.method_nop(specifier)
-
-
-# PowerKeeper
-def global_maximum_fps(apk_file: ApkFile):
-    smali_file = apk_file.open_smali('com/miui/powerkeeper/statemachine/DisplayFrameSetting.smali')
-    specifier = MethodSpecifier()
-    specifier.name = 'setScreenEffect'
-    specifier.parameters = 'Ljava/lang/String;II'
-    smali_file.method_nop(specifier)
