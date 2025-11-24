@@ -357,6 +357,12 @@ def patch_system_ui():
 .end method
 '''
     smali.method_replace(old_body, new_body)
+
+    log('移除开发者选项通知')
+    smali = apk.open_smali('com/oplus/systemui/statusbar/controller/SystemPromptController.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'updateDeveloperMode'
+    smali.method_nop(specifier)
     specifier = MethodSpecifier()
     specifier.name = 'shouldSuppressFold'
     smali.method_return_boolean(specifier, True)
