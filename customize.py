@@ -338,7 +338,6 @@ def patch_system_ui():
 '''
     smali.method_replace(old_body, new_body)
 
-    log('禁用锁屏时钟红1')
     smali = apk.open_smali('com/oplus/keyguard/utils/KeyguardUtils$Companion.smali')
     specifier = MethodSpecifier()
     specifier.name = 'getSpannedHourString'
@@ -379,6 +378,21 @@ def patch_system_ui():
     lines.insert(8, '    return-void')
     lines.insert(9, '    :jump_normal')
     smali.method_replace(old_body, '\n'.join(lines))
+
+    apk.build()
+
+
+@modified('/system_ext/app/KeyguardClockBase/KeyguardClockBase.apk')
+def disable_lock_screen_red_one():
+    log('禁用锁屏时钟红1')
+    apk = ApkFile('system_ext/app/KeyguardClockBase/KeyguardClockBase.apk')
+    apk.decode()
+
+    smali = apk.open_smali('com/oplus/keyguard/clock/base/widget/CustomizedTextView.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'setHourText'
+    specifier.parameters = 'Z'
+    smali.method_nop(specifier)
 
     apk.build()
 
