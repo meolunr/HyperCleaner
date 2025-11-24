@@ -313,14 +313,33 @@ def patch_theme_manager():
     apk.build()
 
 
-@modified('system_ext/priv-app/MiuiSystemUI/MiuiSystemUI.apk')
+@modified('system_ext/priv-app/SystemUI/SystemUI.apk')
 def patch_system_ui():
-    apk = ApkFile('system_ext/priv-app/MiuiSystemUI/MiuiSystemUI.apk')
+    apk = ApkFile('system_ext/priv-app/SystemUI/SystemUI.apk')
     apk.decode()
 
     # Disable historical notifications
     log('禁用历史通知')
     smali = apk.open_smali('com/miui/systemui/notification/MiuiBaseNotifUtil.smali')
+    log('禁用控制中心时钟红1')
+    smali = apk.open_smali('com/oplus/systemui/common/clock/OplusClockExImpl.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'setTextWithRedOneStyle'
+    specifier.parameters = 'Landroid/widget/TextView;Ljava/lang/CharSequence;'
+    specifier.return_type = 'Z'
+    old_body = smali.find_method(specifier)
+    new_body = '''\
+.method public setTextWithRedOneStyle(Landroid/widget/TextView;Ljava/lang/CharSequence;)Z
+    .locals 0
+
+    invoke-virtual {p1, p2}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+
+    iget-boolean p0, p0, Lcom/oplus/systemui/common/clock/OplusClockExImpl;->mIsDateTimePanel:Z
+
+    return p0
+.end method
+'''
+    smali.method_replace(old_body, new_body)
     specifier = MethodSpecifier()
     specifier.name = 'shouldSuppressFold'
     smali.method_return_boolean(specifier, True)
