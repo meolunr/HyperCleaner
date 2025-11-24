@@ -318,9 +318,6 @@ def patch_system_ui():
     apk = ApkFile('system_ext/priv-app/SystemUI/SystemUI.apk')
     apk.decode()
 
-    # Disable historical notifications
-    log('禁用历史通知')
-    smali = apk.open_smali('com/miui/systemui/notification/MiuiBaseNotifUtil.smali')
     log('禁用控制中心时钟红1')
     smali = apk.open_smali('com/oplus/systemui/common/clock/OplusClockExImpl.smali')
     specifier = MethodSpecifier()
@@ -337,6 +334,26 @@ def patch_system_ui():
     iget-boolean p0, p0, Lcom/oplus/systemui/common/clock/OplusClockExImpl;->mIsDateTimePanel:Z
 
     return p0
+.end method
+'''
+    smali.method_replace(old_body, new_body)
+
+    log('禁用锁屏时钟红1')
+    smali = apk.open_smali('com/oplus/keyguard/utils/KeyguardUtils$Companion.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'getSpannedHourString'
+    specifier.parameters = 'Landroid/content/Context;Ljava/lang/String;'
+    specifier.return_type = 'Landroid/text/SpannableStringBuilder;'
+    old_body = smali.find_method(specifier)
+    new_body = '''\
+.method public final getSpannedHourString(Landroid/content/Context;Ljava/lang/String;)Landroid/text/SpannableStringBuilder;
+    .locals 0
+
+    new-instance p1, Landroid/text/SpannableStringBuilder;
+
+    invoke-direct {p1, p2}, Landroid/text/SpannableStringBuilder;-><init>(Ljava/lang/CharSequence;)V
+
+    return p1
 .end method
 '''
     smali.method_replace(old_body, new_body)
