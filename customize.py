@@ -397,6 +397,24 @@ def disable_lock_screen_red_one():
     apk.build()
 
 
+@modified('/my_stock/del-app/Clock/Clock.apk')
+def disable_launcher_clock_red_one():
+    log('禁用桌面时钟小部件红1')
+    apk = ApkFile('my_stock/del-app/Clock/Clock.apk')
+    apk.decode()
+
+    smali = apk.find_smali('"DeviceUtils"', '"not found class:com.oplus.widget.OplusTextClock"').pop()
+    specifier = MethodSpecifier()
+    specifier.access = MethodSpecifier.Access.PUBLIC
+    specifier.is_static = True
+    specifier.parameters = ''
+    specifier.return_type = 'Z'
+    specifier.keywords.add("not found class:com.oplus.widget.OplusTextClock")
+    smali.method_return_boolean(specifier, False)
+
+    apk.build()
+
+
 @modified('product/priv-app/MiuiMms/MiuiMms.apk')
 def remove_mms_ads():
     apk = ApkFile('product/priv-app/MiuiMms/MiuiMms.apk')
