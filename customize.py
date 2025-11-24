@@ -363,14 +363,22 @@ def patch_system_ui():
     specifier = MethodSpecifier()
     specifier.name = 'updateDeveloperMode'
     smali.method_nop(specifier)
-    specifier = MethodSpecifier()
-    specifier.name = 'shouldSuppressFold'
-    smali.method_return_boolean(specifier, True)
 
-    smali = apk.open_smali('com/android/systemui/statusbar/notification/collection/coordinator/FoldCoordinator.smali')
-    specifier.name = 'attach'
-    specifier.parameters = 'Lcom/android/systemui/statusbar/notification/collection/NotifPipeline;'
-    smali.method_nop(specifier)
+    log('移除 USB 选择弹窗')
+    smali = apk.open_smali('com/oplus/systemui/usb/UsbService.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'performUsbDialogAction'
+
+    old_body = smali.find_method(specifier)
+    lines = old_body.splitlines()
+    lines.insert(3, '    const/16 v0, 0x3ea')
+    lines.insert(4, '    if-eq p1, v0, :jump_return')
+    lines.insert(5, '    const/16 v0, 0x3eb')
+    lines.insert(6, '    if-ne p1, v0, :jump_normal')
+    lines.insert(7, '    :jump_return')
+    lines.insert(8, '    return-void')
+    lines.insert(9, '    :jump_normal')
+    smali.method_replace(old_body, '\n'.join(lines))
 
     apk.build()
 
