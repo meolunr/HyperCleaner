@@ -13,7 +13,7 @@ MODIFY_PACKAGE = (
     'com.xiaomi.market'
 )
 
-unpack_partitions = {'product', 'system', 'system_ext', 'vendor'}
+unpack_partitions = {'system', 'system_ext', 'product', 'vendor', 'my_manifest', 'my_product', 'my_stock'}
 device: str
 version: str
 sdk: int
