@@ -1,3 +1,4 @@
+import copy
 import io
 import os
 import re
@@ -769,6 +770,28 @@ def not_update_modified_app():
         output.write('    invoke-interface {p0, v1}, Ljava/util/List;->add(Ljava/lang/Object;)Z\n\n')
     new_body = string.Template(old_body).safe_substitute(var_modify_package=output.getvalue())
     smali.method_replace(old_body, new_body)
+
+    apk.build()
+
+
+@modified('system_ext/app/OplusCommercialEngineerMode/OplusCommercialEngineerMode.apk')
+def show_touchscreen_panel_info():
+    log('显示工程模式中的屏生产信息')
+    apk = ApkFile('system_ext/app/OplusCommercialEngineerMode/OplusCommercialEngineerMode.apk')
+    apk.refactor()
+    apk.decode(False)
+
+    xml = apk.open_xml('xml/as_multimedia_test.xml')
+    root = xml.get_root()
+    attr_title = xml.make_attr_key('android:title')
+    for index, element in enumerate(root):
+        if element.tag == 'androidx.preference.Preference' and element.get(attr_title) == '@string/lcd_brightness':
+            new_element = copy.deepcopy(element)
+            new_element.set(attr_title, '@string/lcd_info_title')
+            new_element.set(xml.make_attr_key('android:key'), 'lcd_info')
+            new_element.find('intent').set(xml.make_attr_key('android:targetClass'), 'com.oplus.engineermode.display.lcd.modeltest.LcdInfoActivity')
+            root.insert(index + 1, new_element)
+    xml.commit()
 
     apk.build()
 
