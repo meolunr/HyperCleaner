@@ -8,17 +8,17 @@ _MODULE_DIR = '/data/adb/modules/colorcleaner'
 
 
 def execute(command: str):
-    return subprocess.run(f'''adb shell "su -c '{command}'"''').returncode
+    return subprocess.run(['adb', 'shell', 'su', '-c', f'"{command}"']).returncode
 
 
 def getoutput(command: str):
-    popen = subprocess.Popen(f'''adb shell "su -c '{command}'"''', stdout=subprocess.PIPE, universal_newlines=True)
+    popen = subprocess.Popen(['adb', 'shell', 'su', '-c', f'"{command}"'], stdout=subprocess.PIPE, universal_newlines=True)
     return popen.stdout
 
 
 def push(src: str, dst: str):
     tmp_file = f'{_DATA_TMP_DIR}/{os.path.basename(src)}'
-    subprocess.run(f'adb push {src} {_DATA_TMP_DIR}', stdout=subprocess.DEVNULL)
+    subprocess.run(['adb', 'push', src, _DATA_TMP_DIR], stdout=subprocess.DEVNULL)
     # Use cp and rm commands to avoid moving file permissions simultaneously
     execute(f'cp -rf {tmp_file} {dst}')
     execute(f'rm -rf {tmp_file}')
@@ -26,11 +26,11 @@ def push(src: str, dst: str):
 
 def pull(src: str, dst: str):
     log(f'拉取设备文件: {src}')
-    subprocess.run(f'adb pull {src} {dst}', stdout=subprocess.DEVNULL)
+    subprocess.run(['adb', 'pull', src, dst], stdout=subprocess.DEVNULL)
 
 
 def install_test_module():
-    subprocess.run(f'adb push {MISC_DIR}/module_template/CCTestModule.zip /sdcard', stdout=subprocess.DEVNULL)
+    subprocess.run(['adb', 'push', f'{MISC_DIR}/module_template/CCTestModule.zip', '/sdcard'], stdout=subprocess.DEVNULL)
     execute('ksud module install /sdcard/CCTestModule.zip')
     execute('rm -f /sdcard/CCTestModule.zip')
     log(f'已安装 CC 测试模块，重启设备后生效')
