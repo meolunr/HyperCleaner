@@ -27,7 +27,6 @@ system_ext/app/Olc
 system_ext/app/OplusAtlasService
 system_ext/app/OplusQualityProtect
 system_ext/app/OwkService
-system_ext/app/PostmanService
 system_ext/app/PrintSpooler
 system_ext/app/RsmcSatelliteAuth
 system_ext/app/Stk
