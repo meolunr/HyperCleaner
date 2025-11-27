@@ -23,12 +23,13 @@ def modified(file: str):
                 return None
             f = ZipFile(file, 'r')
             comment = f.comment
+            comment = ''
             f.close()
 
             if comment != _MODIFIED_FLAG:
                 result = func(*args, **kwargs)
-                with ZipFile(file, 'a') as f:
-                    f.comment = _MODIFIED_FLAG
+                # with ZipFile(file, 'a') as f:
+                #     f.comment = _MODIFIED_FLAG
                 oat = f'{os.path.dirname(file)}/oat'
                 if os.path.exists(oat):
                     shutil.rmtree(oat)
@@ -60,6 +61,163 @@ def rm_files():
                     os.remove(item)
             else:
                 log(f'文件不存在: {item}')
+
+
+@modified('system_ext/priv-app/SystemUI/SystemUI.apk')
+def patch_system_ui():
+    apk = ApkFile('system_ext/priv-app/SystemUI/SystemUI.apk')
+    apk.decode()
+
+    log('禁用控制中心时钟红1')
+    smali = apk.open_smali('com/oplus/systemui/common/clock/OplusClockExImpl.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'setTextWithRedOneStyle'
+    specifier.parameters = 'Landroid/widget/TextView;Ljava/lang/CharSequence;'
+    specifier.return_type = 'Z'
+    old_body = smali.find_method(specifier)
+    new_body = '''\
+.method public setTextWithRedOneStyle(Landroid/widget/TextView;Ljava/lang/CharSequence;)Z
+    .locals 0
+
+    invoke-virtual {p1, p2}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+
+    iget-boolean p0, p0, Lcom/oplus/systemui/common/clock/OplusClockExImpl;->mIsDateTimePanel:Z
+
+    return p0
+.end method
+'''
+    smali.method_replace(old_body, new_body)
+
+    smali = apk.open_smali('com/oplus/keyguard/utils/KeyguardUtils$Companion.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'getSpannedHourString'
+    specifier.parameters = 'Landroid/content/Context;Ljava/lang/String;'
+    specifier.return_type = 'Landroid/text/SpannableStringBuilder;'
+    old_body = smali.find_method(specifier)
+    new_body = '''\
+.method public final getSpannedHourString(Landroid/content/Context;Ljava/lang/String;)Landroid/text/SpannableStringBuilder;
+    .locals 0
+
+    new-instance p1, Landroid/text/SpannableStringBuilder;
+
+    invoke-direct {p1, p2}, Landroid/text/SpannableStringBuilder;-><init>(Ljava/lang/CharSequence;)V
+
+    return p1
+.end method
+'''
+    smali.method_replace(old_body, new_body)
+
+    log('移除开发者选项通知')
+    smali = apk.open_smali('com/oplus/systemui/statusbar/controller/SystemPromptController.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'updateDeveloperMode'
+    smali.method_nop(specifier)
+
+    log('移除 USB 选择弹窗')
+    smali = apk.open_smali('com/oplus/systemui/usb/UsbService.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'performUsbDialogAction'
+
+    old_body = smali.find_method(specifier)
+    lines = old_body.splitlines()
+    lines.insert(3, '    const/16 v0, 0x3ea')
+    lines.insert(4, '    if-eq p1, v0, :jump_return')
+    lines.insert(5, '    const/16 v0, 0x3eb')
+    lines.insert(6, '    if-ne p1, v0, :jump_normal')
+    lines.insert(7, '    :jump_return')
+    lines.insert(8, '    return-void')
+    lines.insert(9, '    :jump_normal')
+    smali.method_replace(old_body, '\n'.join(lines))
+
+    apk.build()
+
+
+@modified('system_ext/app/KeyguardClockBase/KeyguardClockBase.apk')
+def disable_lock_screen_red_one():
+    log('禁用锁屏时钟红1')
+    apk = ApkFile('system_ext/app/KeyguardClockBase/KeyguardClockBase.apk')
+    apk.decode()
+
+    smali = apk.open_smali('com/oplus/keyguard/clock/base/widget/CustomizedTextView.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'setHourText'
+    specifier.parameters = 'Z'
+    smali.method_nop(specifier)
+
+    apk.build()
+
+
+@modified('my_stock/del-app/Clock/Clock.apk')
+def disable_launcher_clock_red_one():
+    log('禁用桌面时钟小部件红1')
+    apk = ApkFile('my_stock/del-app/Clock/Clock.apk')
+    apk.decode()
+
+    smali = apk.find_smali('"DeviceUtils"', '"not found class:com.oplus.widget.OplusTextClock"').pop()
+    specifier = MethodSpecifier()
+    specifier.access = MethodSpecifier.Access.PUBLIC
+    specifier.is_static = True
+    specifier.parameters = ''
+    specifier.return_type = 'Z'
+    specifier.keywords.add("not found class:com.oplus.widget.OplusTextClock")
+    smali.method_return_boolean(specifier, False)
+
+    apk.build()
+
+
+@modified('system/system/framework/oplus-services.jar')
+def remove_vpn_notification():
+    log('移除已激活 VPN 通知')
+    apk = ApkFile('system/system/framework/oplus-services.jar')
+    apk.decode()
+
+    smali = apk.open_smali('com/android/server/connectivity/VpnExtImpl.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'showNotification'
+    specifier.parameters = 'Ljava/lang/String;IILjava/lang/String;Landroid/app/PendingIntent;Lcom/android/internal/net/VpnConfig;'
+    smali.method_nop(specifier)
+
+    apk.build()
+    for file in glob('system/system/framework/**/oplus-services.*', recursive=True):
+        if not os.path.samefile(apk.file, file):
+            os.remove(file)
+
+
+@modified('system_ext/priv-app/Settings/Settings.apk')
+def disable_sensitive_word_check():
+    log('禁用设备名称敏感词检查')
+    apk = ApkFile('system_ext/priv-app/Settings/Settings.apk')
+    apk.decode()
+
+    smali = apk.open_smali('com/oplus/settings/feature/deviceinfo/aboutphone/PhoneNameVerifyUtil.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'activeNeedServerVerify'
+    specifier.parameters = 'Ljava/lang/String;'
+    smali.method_return_boolean(specifier, False)
+
+    apk.build()
+
+
+@modified('system_ext/app/OplusCommercialEngineerMode/OplusCommercialEngineerMode.apk')
+def show_touchscreen_panel_info():
+    log('显示工程模式中的屏生产信息')
+    apk = ApkFile('system_ext/app/OplusCommercialEngineerMode/OplusCommercialEngineerMode.apk')
+    apk.refactor()
+    apk.decode(False)
+
+    xml = apk.open_xml('xml/as_multimedia_test.xml')
+    root = xml.get_root()
+    attr_title = xml.make_attr_key('android:title')
+    for index, element in enumerate(root):
+        if element.tag == 'androidx.preference.Preference' and element.get(attr_title) == '@string/lcd_brightness':
+            new_element = copy.deepcopy(element)
+            new_element.set(attr_title, '@string/lcd_info_title')
+            new_element.set(xml.make_attr_key('android:key'), 'lcd_info')
+            new_element.find('intent').set(xml.make_attr_key('android:targetClass'), 'com.oplus.engineermode.display.lcd.modeltest.LcdInfoActivity')
+            root.insert(index + 1, new_element)
+    xml.commit()
+
+    apk.build()
 
 
 def replace_analytics():
@@ -143,69 +301,6 @@ def patch_miui_services():
     for file in glob('system_ext/framework/**/miui-services.*', recursive=True):
         if not os.path.samefile(apk.file, file):
             os.remove(file)
-
-
-@modified('product/priv-app/MIUIPackageInstaller/MIUIPackageInstaller.apk')
-def patch_package_installer():
-    log('净化应用包管理组件')
-    apk = ApkFile('product/priv-app/MIUIPackageInstaller/MIUIPackageInstaller.apk')
-    apk.refactor()
-    apk.decode(False)
-
-    # Remove ads
-    smali = apk.open_smali('com/miui/packageInstaller/model/ApkInfo.smali')
-    specifier = MethodSpecifier()
-    specifier.name = 'getSystemApp'
-    smali.method_return_boolean(specifier, True)
-
-    # Disable ads switch by default
-    specifier = MethodSpecifier()
-    specifier.return_type = 'Z'
-    specifier.keywords.add('"ads_enable"')
-    for smali in apk.find_smali('"ads_enable"'):
-        smali.method_return_boolean(specifier, False)
-
-    # Allow installation of system applications
-    specifier = MethodSpecifier()
-    specifier.parameters = 'Landroid/content/Context;Ljava/lang/String;'
-    specifier.return_type = 'Z'
-    specifier.keywords.add('getApplicationInfo')
-    for smali in apk.find_smali('"PackageUtil"', '"getPackageVersionCode"'):
-        smali.method_return_boolean(specifier, False)
-
-    # Turn on the safe mode UI without enabling its features
-    invoke_specifier = MethodSpecifier()
-    invoke_specifier.parameters = 'Landroid/content/Context;'
-    invoke_specifier.return_type = 'Z'
-    invoke_specifier.keywords.add('"safe_mode_is_open_cloud_config"')
-
-    specifier = MethodSpecifier()
-    specifier.parameters = ''
-    specifier.return_type = 'Z'
-    specifier.invoke_methods.add(invoke_specifier)
-    for smali in apk.find_smali('"FullSafeHelper"'):
-        smali.method_return_boolean(specifier, True)
-
-    # Hide outdated switches
-    xml = apk.open_xml('xml/settings.xml')
-    root = xml.get_root()
-    for element in root.findall('.//miuix.preference.CheckBoxPreference'):
-        if element.get(xml.make_attr_key('android:key')) == 'pref_key_open_ads':
-            element.set(xml.make_attr_key('app:isPreferenceVisible'), 'false')
-    for element in root.findall('.//miuix.preference.TextPreference'):
-        if element.get(xml.make_attr_key('android:key')) == 'pref_key_security_mode_security_verify_risk_app':
-            element.set(xml.make_attr_key('app:isPreferenceVisible'), 'false')
-    xml.commit()
-
-    # Hide feedback button
-    xml = apk.open_xml('menu/full_safe_installer_prepare_action_bar.xml')
-    group_tree = xml.get_root().find('group')
-    for element in group_tree.findall('item'):
-        if element.get(xml.make_attr_key('android:id')) == '@id/feedback':
-            group_tree.remove(element)
-    xml.commit()
-
-    apk.build()
 
 
 @modified('product/app/MIUIThemeManager/MIUIThemeManager.apk')
@@ -314,126 +409,6 @@ def patch_theme_manager():
     apk.build()
 
 
-@modified('system_ext/priv-app/SystemUI/SystemUI.apk')
-def patch_system_ui():
-    apk = ApkFile('system_ext/priv-app/SystemUI/SystemUI.apk')
-    apk.decode()
-
-    log('禁用控制中心时钟红1')
-    smali = apk.open_smali('com/oplus/systemui/common/clock/OplusClockExImpl.smali')
-    specifier = MethodSpecifier()
-    specifier.name = 'setTextWithRedOneStyle'
-    specifier.parameters = 'Landroid/widget/TextView;Ljava/lang/CharSequence;'
-    specifier.return_type = 'Z'
-    old_body = smali.find_method(specifier)
-    new_body = '''\
-.method public setTextWithRedOneStyle(Landroid/widget/TextView;Ljava/lang/CharSequence;)Z
-    .locals 0
-
-    invoke-virtual {p1, p2}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
-
-    iget-boolean p0, p0, Lcom/oplus/systemui/common/clock/OplusClockExImpl;->mIsDateTimePanel:Z
-
-    return p0
-.end method
-'''
-    smali.method_replace(old_body, new_body)
-
-    smali = apk.open_smali('com/oplus/keyguard/utils/KeyguardUtils$Companion.smali')
-    specifier = MethodSpecifier()
-    specifier.name = 'getSpannedHourString'
-    specifier.parameters = 'Landroid/content/Context;Ljava/lang/String;'
-    specifier.return_type = 'Landroid/text/SpannableStringBuilder;'
-    old_body = smali.find_method(specifier)
-    new_body = '''\
-.method public final getSpannedHourString(Landroid/content/Context;Ljava/lang/String;)Landroid/text/SpannableStringBuilder;
-    .locals 0
-
-    new-instance p1, Landroid/text/SpannableStringBuilder;
-
-    invoke-direct {p1, p2}, Landroid/text/SpannableStringBuilder;-><init>(Ljava/lang/CharSequence;)V
-
-    return p1
-.end method
-'''
-    smali.method_replace(old_body, new_body)
-
-    log('移除开发者选项通知')
-    smali = apk.open_smali('com/oplus/systemui/statusbar/controller/SystemPromptController.smali')
-    specifier = MethodSpecifier()
-    specifier.name = 'updateDeveloperMode'
-    smali.method_nop(specifier)
-
-    log('移除 USB 选择弹窗')
-    smali = apk.open_smali('com/oplus/systemui/usb/UsbService.smali')
-    specifier = MethodSpecifier()
-    specifier.name = 'performUsbDialogAction'
-
-    old_body = smali.find_method(specifier)
-    lines = old_body.splitlines()
-    lines.insert(3, '    const/16 v0, 0x3ea')
-    lines.insert(4, '    if-eq p1, v0, :jump_return')
-    lines.insert(5, '    const/16 v0, 0x3eb')
-    lines.insert(6, '    if-ne p1, v0, :jump_normal')
-    lines.insert(7, '    :jump_return')
-    lines.insert(8, '    return-void')
-    lines.insert(9, '    :jump_normal')
-    smali.method_replace(old_body, '\n'.join(lines))
-
-    apk.build()
-
-
-@modified('/system_ext/app/KeyguardClockBase/KeyguardClockBase.apk')
-def disable_lock_screen_red_one():
-    log('禁用锁屏时钟红1')
-    apk = ApkFile('system_ext/app/KeyguardClockBase/KeyguardClockBase.apk')
-    apk.decode()
-
-    smali = apk.open_smali('com/oplus/keyguard/clock/base/widget/CustomizedTextView.smali')
-    specifier = MethodSpecifier()
-    specifier.name = 'setHourText'
-    specifier.parameters = 'Z'
-    smali.method_nop(specifier)
-
-    apk.build()
-
-
-@modified('/my_stock/del-app/Clock/Clock.apk')
-def disable_launcher_clock_red_one():
-    log('禁用桌面时钟小部件红1')
-    apk = ApkFile('my_stock/del-app/Clock/Clock.apk')
-    apk.decode()
-
-    smali = apk.find_smali('"DeviceUtils"', '"not found class:com.oplus.widget.OplusTextClock"').pop()
-    specifier = MethodSpecifier()
-    specifier.access = MethodSpecifier.Access.PUBLIC
-    specifier.is_static = True
-    specifier.parameters = ''
-    specifier.return_type = 'Z'
-    specifier.keywords.add("not found class:com.oplus.widget.OplusTextClock")
-    smali.method_return_boolean(specifier, False)
-
-    apk.build()
-
-
-@modified('system/system/framework/oplus-services.jar')
-def remove_vpn_notification():
-    log('移除已激活 VPN 通知')
-    apk = ApkFile('system/system/framework/oplus-services.jar')
-    apk.decode()
-
-    smali = apk.open_smali('com/android/server/connectivity/VpnExtImpl.smali')
-    specifier = MethodSpecifier()
-    specifier.name = 'showNotification'
-    specifier.parameters = 'Ljava/lang/String;IILjava/lang/String;Landroid/app/PendingIntent;Lcom/android/internal/net/VpnConfig;'
-    smali.method_nop(specifier)
-
-    apk.build()
-    for file in glob('system/system/framework/**/oplus-services.*', recursive=True):
-        if not os.path.samefile(apk.file, file):
-            os.remove(file)
-
-
 @modified('product/priv-app/MiuiMms/MiuiMms.apk')
 def remove_mms_ads():
     apk = ApkFile('product/priv-app/MiuiMms/MiuiMms.apk')
@@ -461,24 +436,6 @@ def remove_mms_ads():
         old_body = smali.find_method(specifier)
         new_body = re.sub(pattern, repl, old_body)
         smali.method_replace(old_body, new_body)
-
-    apk.build()
-
-
-@modified('system/system/priv-app/TeleService/TeleService.apk')
-def show_network_type_settings():
-    log('显示网络类型设置')
-    apk = ApkFile('system/system/priv-app/TeleService/TeleService.apk')
-    apk.decode()
-
-    smali = apk.open_smali('com/android/phone/NetworkModeManager.smali')
-    specifier = MethodSpecifier()
-    specifier.name = 'isRemoveNetworkModeSettings'
-
-    specifier.parameters = 'I'
-    smali.method_return_boolean(specifier, False)
-    specifier.parameters = 'Lcom/android/internal/telephony/Phone;'
-    smali.method_return_boolean(specifier, False)
 
     apk.build()
 
@@ -723,21 +680,6 @@ def patch_security_center():
     apk.build()
 
 
-@modified('system_ext/priv-app/Settings/Settings.apk')
-def disable_sensitive_word_check():
-    log('禁用设备名称敏感词检查')
-    apk = ApkFile('system_ext/priv-app/Settings/Settings.apk')
-    apk.decode()
-
-    smali = apk.open_smali('com/oplus/settings/feature/deviceinfo/aboutphone/PhoneNameVerifyUtil.smali')
-    specifier = MethodSpecifier()
-    specifier.name = 'activeNeedServerVerify'
-    specifier.parameters = 'Ljava/lang/String;'
-    smali.method_return_boolean(specifier, False)
-
-    apk.build()
-
-
 @modified('product/app/MIUISuperMarket/MIUISuperMarket.apk')
 def not_update_modified_app():
     log('不检查修改过的系统应用更新')
@@ -774,50 +716,15 @@ def not_update_modified_app():
     apk.build()
 
 
-@modified('system_ext/app/OplusCommercialEngineerMode/OplusCommercialEngineerMode.apk')
-def show_touchscreen_panel_info():
-    log('显示工程模式中的屏生产信息')
-    apk = ApkFile('system_ext/app/OplusCommercialEngineerMode/OplusCommercialEngineerMode.apk')
-    apk.refactor()
-    apk.decode(False)
-
-    xml = apk.open_xml('xml/as_multimedia_test.xml')
-    root = xml.get_root()
-    attr_title = xml.make_attr_key('android:title')
-    for index, element in enumerate(root):
-        if element.tag == 'androidx.preference.Preference' and element.get(attr_title) == '@string/lcd_brightness':
-            new_element = copy.deepcopy(element)
-            new_element.set(attr_title, '@string/lcd_info_title')
-            new_element.set(xml.make_attr_key('android:key'), 'lcd_info')
-            new_element.find('intent').set(xml.make_attr_key('android:targetClass'), 'com.oplus.engineermode.display.lcd.modeltest.LcdInfoActivity')
-            root.insert(index + 1, new_element)
-    xml.commit()
-
-    apk.build()
-
-
 def run_on_rom():
     rm_files()
-    # replace_analytics()
-    # patch_services()
-    # patch_miui_services()
-    # patch_package_installer()
-    # patch_theme_manager()
-    # patch_system_ui()
-    # remove_mms_ads()
-    # show_network_type_settings()
-    # patch_security_center()
-    # disable_sensitive_word_check()
-    # disable_mi_trust_service_mrm()
-    # not_update_modified_app()
+    patch_system_ui()
+    disable_lock_screen_red_one()
+    disable_launcher_clock_red_one()
+    remove_vpn_notification()
+    disable_sensitive_word_check()
+    show_touchscreen_panel_info()
 
 
 def run_on_module():
-    patch_package_installer()
-    patch_theme_manager()
-    patch_system_ui()
-    remove_mms_ads()
-    show_network_type_settings()
-    patch_security_center()
-    disable_sensitive_word_check()
-    not_update_modified_app()
+    pass
