@@ -53,7 +53,10 @@ def rm_files():
                 continue
             if os.path.exists(item):
                 log(f'删除文件: {item}')
-                shutil.rmtree(item)
+                if os.path.isdir(item):
+                    shutil.rmtree(item)
+                else:
+                    os.remove(item)
             else:
                 log(f'文件不存在: {item}')
 
@@ -778,29 +781,3 @@ def run_on_module():
     disable_sensitive_word_check()
     disable_mi_trust_service_mrm()
     not_update_modified_app()
-
-
-# Unused Code ==================================================================================
-# SecurityCenter
-def disable_wifi_blocked_notification(apk_file: ApkFile):
-    smali_file = apk_file.open_smali('com/miui/networkassistant/utils/NotificationUtil.smali')
-    specifier = MethodSpecifier()
-    specifier.name = 'sendWifiNetworkBlockedNotify'
-    smali_file.method_nop(specifier)
-
-
-# PowerKeeper
-def disable_cloud_control(apk_file: ApkFile):
-    smali_file = apk_file.open_smali('com/miui/powerkeeper/cloudcontrol/LocalUpdateUtils.smali')
-    specifier = MethodSpecifier()
-    specifier.name = 'startCloudSyncData'
-    smali_file.method_nop(specifier)
-
-
-# PowerKeeper
-def global_maximum_fps(apk_file: ApkFile):
-    smali_file = apk_file.open_smali('com/miui/powerkeeper/statemachine/DisplayFrameSetting.smali')
-    specifier = MethodSpecifier()
-    specifier.name = 'setScreenEffect'
-    specifier.parameters = 'Ljava/lang/String;II'
-    smali_file.method_nop(specifier)

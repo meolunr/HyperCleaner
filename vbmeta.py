@@ -110,9 +110,18 @@ class VbMeta:
                 vbmeta_offset = int.from_bytes(self._image.read(8))
 
             self._read_header(vbmeta_offset)
+
+            self._image.seek(vbmeta_offset + AvbHeader.SIZE)
+            self.authentication_data_blob = self._image.read(self.header.authentication_data_block_size)
+
             aux_block_offset = vbmeta_offset + AvbHeader.SIZE + self.header.authentication_data_block_size
             desc_start_offset = aux_block_offset + self.header.descriptors_offset
             self._read_descriptors(desc_start_offset)
+
+            self._image.seek(vbmeta_offset + AvbHeader.SIZE + self.header.authentication_data_block_size + self.header.public_key_offset)
+            self.public_key_blob = self._image.read(self.header.public_key_size)
+            self._image.seek(vbmeta_offset + AvbHeader.SIZE + self.header.authentication_data_block_size + self.header.public_key_metadata_offset)
+            self.public_key_metadata_blob = self._image.read(self.header.public_key_metadata_size)
 
     def write(self):
         with open(self.file, 'wb') as f:
@@ -139,20 +148,29 @@ class VbMeta:
             desc_offset += 16 + nb_following
 
     def _encode(self):
-        aux_data_blob = bytearray()
-        for desc in self.descriptors:
-            aux_data_blob.extend(desc.encode())
+        descriptors_blob = bytearray()
+        for item in self.descriptors:
+            descriptors_blob.extend(item.encode())
 
+        aux_data_blob = bytearray()
+        aux_data_blob.extend(descriptors_blob)
+        aux_data_blob.extend(self.public_key_blob)
+        aux_data_blob.extend(self.public_key_metadata_blob)
+
+        self.header.authentication_data_block_size = len(self.authentication_data_blob)
         self.header.auxiliary_data_block_size = round_to_multiple(len(aux_data_blob), 64)
-        self.header.descriptors_size = len(aux_data_blob)
+        self.header.descriptors_size = len(descriptors_blob)
         self.header.public_key_offset = self.header.descriptors_size
+        self.header.public_key_size = len(self.public_key_blob)
         self.header.public_key_metadata_offset = self.header.public_key_offset + self.header.public_key_size
+        self.header.public_key_metadata_size = len(self.public_key_metadata_blob)
 
         padding_bytes = self.header.auxiliary_data_block_size - len(aux_data_blob)
         aux_data_blob.extend(b'\0' * padding_bytes)
 
         vbmeta_blob = bytearray()
         vbmeta_blob.extend(self.header.encode())
+        vbmeta_blob.extend(self.authentication_data_blob)
         vbmeta_blob.extend(aux_data_blob)
         vbmeta_size = len(vbmeta_blob)
         padded_size = round_to_multiple(vbmeta_size, self._image_size)
@@ -165,22 +183,10 @@ class VbMeta:
 def patch(vbmeta_file: str, boot_file: str):
     avb = VbMeta(vbmeta_file)
 
-    # Remove the verification data for vbmeta
-    avb.header.authentication_data_block_size = 0
     avb.header.algorithm_type = 0
-
-    # Remove the verification data for header and auxiliary
-    avb.header.hash_size = 0
-    avb.header.signature_offset = 0
-    avb.header.signature_size = 0
-
-    # Remove public key
-    avb.header.public_key_size = 0
-    avb.header.public_key_metadata_size = 0
-
-    # Allow rollback
     avb.header.rollback_index = 0
-    # Disable verity and verification
+    avb.public_key_blob = bytes()
+    avb.public_key_metadata_blob = bytes()
     avb.header.flags = AvbHeader.FLAG_DISABLE_VERITY | AvbHeader.FLAG_DISABLE_VERIFICATION
 
     # Copy avb property descriptors from boot.img

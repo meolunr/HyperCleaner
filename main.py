@@ -21,7 +21,7 @@ from util import imgfile, template
 def dump_payload(file: str):
     log(f'解压 Payload: {file}')
     payload_extract = f'{LIB_DIR}/payload_extract.exe'
-    subprocess.run(f'{payload_extract} -x -i {file} -o images', check=True)
+    subprocess.run([payload_extract, '-x', '-i', file, '-o', 'images'], check=True)
 
 
 def remove_official_recovery():
@@ -34,21 +34,28 @@ def remove_official_recovery():
 def unpack_img():
     extract_erofs = f'{LIB_DIR}/extract.erofs.exe'
     magiskboot = f'{LIB_DIR}/magiskboot.exe'
+    partition_filesystem = {}
 
     for partition in config.unpack_partitions:
         img = f'{partition}.img'
         file = f'images/{img}'
-        filesystem = imgfile.file_system(file)
+        filesystem = imgfile.filesystem(file)
         log(f'提取分区文件: {img}, 格式: {filesystem}')
         match filesystem:
             case imgfile.FileSystem.EROFS:
-                subprocess.run(f'{extract_erofs} -x -i {file}', check=True)
+                subprocess.run([extract_erofs, '-x', '-i', file], check=True)
             case imgfile.FileSystem.BOOT:
                 os.mkdir(partition)
                 shutil.copy(file, f'{partition}/{img}')
                 os.chdir(partition)
-                subprocess.run(f'{magiskboot} unpack {img}', check=True)
+                subprocess.run([magiskboot, 'unpack', img], check=True)
                 os.chdir('..')
+        partition_filesystem[partition] = filesystem.name
+
+    if not os.path.isdir('config'):
+        os.mkdir('config')
+    with open('config/partition_filesystem.json', 'w', encoding='utf-8', newline='\n') as f:
+        json.dump(partition_filesystem, f, indent=4)
 
 
 def read_rom_information():
@@ -127,49 +134,46 @@ def handle_pangu_overlay():
 def repack_img():
     mkfs_erofs = f'{LIB_DIR}/mkfs.erofs.exe'
     magiskboot = f'{LIB_DIR}/magiskboot.exe'
+    with open('config/partition_filesystem.json', 'r', encoding='utf-8') as f:
+        partition_filesystem: dict = json.load(f)
 
     for partition in config.unpack_partitions:
         log(f'打包分区文件: {partition}')
         file = f'images/{partition}.img'
-        match imgfile.file_system(file):
+        filesystem = imgfile.FileSystem[partition_filesystem[partition]]
+        match filesystem:
             case imgfile.FileSystem.EROFS:
                 imgfile.sync_app_perm_and_context(partition)
-                fs_config = f'config/{partition}_fs_config'
-                contexts = f'config/{partition}_file_contexts'
-                subprocess.run(f'{mkfs_erofs} -zlz4hc,1 -T 1230768000 --mount-point /{partition} --fs-config-file {fs_config} --file-contexts {contexts} {file} {partition}',
-                               check=True)
+                subprocess.run([mkfs_erofs, '-zlz4hc,1', '-T', '1230768000', '--mount-point', f'/{partition}',
+                                '--fs-config-file', f'config/{partition}_fs_config', '--file-contexts', f'config/{partition}_file_contexts', file, partition], check=True)
             case imgfile.FileSystem.BOOT:
                 os.chdir(partition)
-                subprocess.run(f'{magiskboot} repack boot.img ../{file}', check=True)
+                subprocess.run([magiskboot, 'repack', 'boot.img', f'../{file}'], check=True)
                 os.chdir('..')
 
     log('清空 cust 分区')
-    shutil.copy(f'{MISC_DIR}/BlankCust.img', 'images/cust.img')
+    shutil.copy(f'{MISC_DIR}/BlankErofs.img', 'images/cust.img')
 
 
 def repack_super():
     log('打包 super.img')
-    output = io.StringIO()
-    output.write(f'{LIB_DIR}/lpmake.exe ')
-    output.write('--metadata-size 65536 ')
-    output.write('--super-name super ')
-    output.write('--metadata-slots 3 ')
-    output.write('--virtual-ab ')
-    output.write(f'--device super:{config.SUPER_SIZE} ')
-    output.write(f'--group qti_dynamic_partitions_a:{config.SUPER_SIZE} ')
-    output.write(f'--group qti_dynamic_partitions_b:{config.SUPER_SIZE} ')
+    cmd = [f'{LIB_DIR}/lpmake.exe',
+           '--metadata-size', '65536',
+           '--super-name', 'super',
+           '--metadata-slots', '3',
+           '--virtual-ab', '--device', f'super:{config.SUPER_SIZE}',
+           '--group', f'qti_dynamic_partitions_a:{config.SUPER_SIZE}',
+           '--group', f'qti_dynamic_partitions_b:{config.SUPER_SIZE}']
 
     for partition in config.SUPER_PARTITIONS:
         img = f'images/{partition}.img'
         size = os.path.getsize(img)
         log(f'动态分区: {partition}, 大小: {size} 字节')
-        output.write(f'--partition {partition}_a:readonly:{size}:qti_dynamic_partitions_a ')
-        output.write(f'--image {partition}_a={img} ')
-        output.write(f'--partition {partition}_b:none:0:qti_dynamic_partitions_b ')
+        cmd += ['--partition', f'{partition}_a:readonly:{size}:qti_dynamic_partitions_a', '--image', f'{partition}_a={img}']
+        cmd += ['--partition', f'{partition}_b:none:0:qti_dynamic_partitions_b']
 
-    output.write('--force-full-image ')
-    output.write('--output images/super.img')
-    cmd = output.getvalue()
+    cmd.append('--force-full-image')
+    cmd += ['--output', 'images/super.img']
     subprocess.run(cmd, check=True)
 
     for partition in config.SUPER_PARTITIONS:
@@ -179,7 +183,7 @@ def repack_super():
 
     log('使用 zstd 压缩 super.img')
     zstd = f'{LIB_DIR}/zstd.exe'
-    subprocess.run(f'{zstd} --rm images/super.img -o images/super.img.zst', check=True)
+    subprocess.run([zstd, '--rm', 'images/super.img', '-o', 'images/super.img.zst'], check=True)
 
 
 def generate_script():
@@ -229,9 +233,10 @@ def generate_script():
 
 def compress_zip():
     log('构建刷机包')
-    archives = ['META-INF']
+    _7z = f'{LIB_DIR}/7za.exe'
+    cmd = [_7z, 'a', 'tmp.zip', 'META-INF']
     for img in os.listdir('images'):
-        archives.append(f'images/{img}')
+        cmd.append(f'images/{img}')
 
     flash_script_dir = 'META-INF/com/google/android'
     if not os.path.exists(flash_script_dir):
@@ -239,8 +244,7 @@ def compress_zip():
     shutil.move('update-binary', f'{flash_script_dir}/update-binary')
     shutil.copy(f'{MISC_DIR}/zstd', f'{flash_script_dir}/zstd')
 
-    _7z = f'{LIB_DIR}/7za.exe'
-    subprocess.run(f'{_7z} a tmp.zip {' '.join(archives)}', check=True)
+    subprocess.run(cmd, check=True)
 
     md5 = hashlib.md5()
     with open('tmp.zip', 'rb') as f:
@@ -265,7 +269,7 @@ def make_update_module():
     version_code = time.strftime('%Y%m%d')
     template.substitute(f'{MISC_DIR}/module_template/AppUpdate/module.prop', var_version=time.strftime('%Y.%m.%d'), var_version_code=version_code)
     _7z = f'{LIB_DIR}/7za.exe'
-    subprocess.run(f'{_7z} a HC_AppUpdate_{version_code}.zip {' '.join(os.listdir())}', check=True)
+    subprocess.run([_7z, 'a', f'HC_AppUpdate_{version_code}.zip'] + os.listdir(), check=True)
 
 
 def make_rom(args: argparse.Namespace):

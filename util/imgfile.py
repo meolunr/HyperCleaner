@@ -19,7 +19,7 @@ _FS_TYPES = (
 )
 
 
-def file_system(file: str) -> FileSystem | None:
+def filesystem(file: str) -> FileSystem | None:
     with open(file, 'rb') as f:
         for fs, offset, magic in _FS_TYPES:
             f.seek(offset, os.SEEK_SET)

@@ -25,12 +25,12 @@ waitForVolumeKey() {
 
 flash() {
 	print "- 正在刷入分区 $(echo $2 | cut -d '/' -f 6)"
-	unzip -p $ZIPFILE $1 > $2
+	7za e -so $ZIPFILE $1 > $2
 }
 
 flashZstd() {
 	print "- 正在刷入分区 $(echo $2 | cut -d '/' -f 6)"
-	unzip -p $ZIPFILE $1 | $TMPDIR/zstd -c -d > $2
+	7za e -so $ZIPFILE $1 | $TMPDIR/zstd -c -d > $2
 }
 
 remapSuper() {
@@ -58,7 +58,7 @@ removeDataApp() {
 rm -rf $TMPDIR
 mkdir -p $TMPDIR
 
-unzip -j $ZIPFILE META-INF/com/google/android/zstd -d $TMPDIR
+7za e $ZIPFILE META-INF/com/google/android/zstd -o$TMPDIR
 chmod -R 0755 $TMPDIR
 
 device=$(getprop ro.product.name)

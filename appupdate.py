@@ -39,7 +39,7 @@ class NewApp(object):
 
 
 def check_adb_device() -> bool:
-    lines = subprocess.run('adb devices', stdout=subprocess.PIPE).stdout.decode().strip().splitlines()
+    lines = subprocess.run(['adb', 'devices'], stdout=subprocess.PIPE).stdout.decode().strip().splitlines()
     num = len(lines)
     if num == 2:
         return False
@@ -179,7 +179,7 @@ def pull_apk_from_phone(app: NewApp):
 
     if extract_lib:
         _7z = f'{LIB_DIR}/7za.exe'
-        subprocess.run(f'{_7z} e -aoa {app.system_path_rom_with_apk} lib/arm64-v8a -o{app.system_path_rom}/lib/arm64', stdout=subprocess.DEVNULL)
+        subprocess.run([_7z, 'e', '-aoa', app.system_path_rom_with_apk, 'lib/arm64-v8a', f'-o{app.system_path_rom}/lib/arm64'], stdout=subprocess.DEVNULL)
 
 
 def update_privilege_permission(apps: set[NewApp]):
