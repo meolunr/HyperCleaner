@@ -11,7 +11,7 @@ from zipfile import ZipFile
 import config
 from build.apkfile import ApkFile
 from build.smali import MethodSpecifier
-from hcglobal import MISC_DIR, log
+from ccglobal import MISC_DIR, log
 
 _MODIFIED_FLAG = b'HC-Mod'
 
@@ -23,13 +23,12 @@ def modified(file: str):
                 return None
             f = ZipFile(file, 'r')
             comment = f.comment
-            comment = ''
             f.close()
 
             if comment != _MODIFIED_FLAG:
                 result = func(*args, **kwargs)
-                # with ZipFile(file, 'a') as f:
-                #     f.comment = _MODIFIED_FLAG
+                with ZipFile(file, 'a') as f:
+                    f.comment = _MODIFIED_FLAG
                 oat = f'{os.path.dirname(file)}/oat'
                 if os.path.exists(oat):
                     shutil.rmtree(oat)
@@ -696,14 +695,14 @@ def not_update_modified_app():
     move-result-object ([v|p]\\d+?)
 '''
     repl = '''\\g<0>
-    invoke-static {\\g<1>}, Lcom/xiaomi/market/data/HcInjector;->addModifiedPackages(Ljava/util/List;)V
+    invoke-static {\\g<1>}, Lcom/xiaomi/market/data/CcInjector;->addModifiedPackages(Ljava/util/List;)V
 '''
     new_body = re.sub(pattern, repl, old_body)
     smali.method_replace(old_body, new_body)
 
-    # If the hccm (HyperCleaner Check Modified) file exists in the internal storage root directory, ignore adding packages
-    smali.add_affiliated_smali(f'{MISC_DIR}/smali/IgnoreAppUpdate.smali', 'HcInjector.smali')
-    smali = apk.open_smali('com/xiaomi/market/data/HcInjector.smali')
+    # If the cccm (ColorCleaner Check Modified) file exists in the internal storage root directory, ignore adding packages
+    smali.add_affiliated_smali(f'{MISC_DIR}/smali/IgnoreAppUpdate.smali', 'CcInjector.smali')
+    smali = apk.open_smali('com/xiaomi/market/data/CcInjector.smali')
     specifier.name = 'addModifiedPackages'
     old_body = smali.find_method(specifier)
     output = io.StringIO()

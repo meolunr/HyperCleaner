@@ -1,6 +1,6 @@
 import subprocess
 
-from hcglobal import LIB_DIR
+from ccglobal import LIB_DIR
 
 
 def decode(file: str, output: str, resource_type: str = 'xml'):

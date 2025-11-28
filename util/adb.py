@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-from hcglobal import MISC_DIR, log
+from ccglobal import MISC_DIR, log
 
 _DATA_TMP_DIR = '/data/local/tmp'
 _MODULE_DIR = '/data/adb/modules/colorcleaner'

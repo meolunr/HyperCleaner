@@ -1,6 +1,6 @@
 #!/sbin/sh
 
-TMPDIR=/tmp/hypercleaner
+TMPDIR=/tmp/colorcleaner
 OUTFD=/proc/self/fd/$2
 ZIPFILE="$3"
 
@@ -64,9 +64,9 @@ chmod -R 0755 $TMPDIR
 device=$(getprop ro.product.name)
 print "=============================="
 print " "
-print "    < HyperCleaner >"
+print "    < ColorCleaner >"
 print " "
-print "    https://github.com/meolunr/HyperCleaner"
+print "    https://github.com/meolunr/ColorCleaner"
 print " "
 print "    设备代号：$device"
 print "    ROM 代号：$var_device"

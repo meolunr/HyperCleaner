@@ -14,7 +14,7 @@ import appupdate
 import config
 import customize
 import vbmeta
-from hcglobal import LIB_DIR, MISC_DIR, UPDATED_APP_JSON, log
+from ccglobal import LIB_DIR, MISC_DIR, UPDATED_APP_JSON, log
 from util import imgfile, template
 
 
@@ -251,7 +251,7 @@ def compress_zip():
     md5 = hashlib.md5()
     with open('tmp.zip', 'rb') as f:
         md5.update(f.read())
-    file_name = f'HC_{config.device}_{config.version}_{md5.hexdigest()[:10]}_{config.sdk}.zip'
+    file_name = f'CC_{config.device}_{config.version}_{md5.hexdigest()[:10]}_{config.sdk}.zip'
     os.rename('tmp.zip', file_name)
     log(f'刷机包文件: {os.path.abspath(file_name).replace('\\', '/')}')
 
@@ -271,7 +271,7 @@ def make_update_module():
     version_code = time.strftime('%Y%m%d')
     template.substitute(f'{MISC_DIR}/module_template/AppUpdate/module.prop', var_version=time.strftime('%Y.%m.%d'), var_version_code=version_code)
     _7z = f'{LIB_DIR}/7za.exe'
-    subprocess.run([_7z, 'a', f'HC_AppUpdate_{version_code}.zip'] + os.listdir(), check=True)
+    subprocess.run([_7z, 'a', f'CC_AppUpdate_{version_code}.zip'] + os.listdir(), check=True)
 
 
 def make_rom(args: argparse.Namespace):

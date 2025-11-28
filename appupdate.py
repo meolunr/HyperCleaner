@@ -11,7 +11,7 @@ from zipfile import ZipFile
 import config
 from build.apkfile import ApkFile
 from build.xml import XmlFile
-from hcglobal import LIB_DIR, MISC_DIR, UPDATED_APP_JSON, PRODUCT_PRIVILEGE_PERMISSION_XML, PRIVILEGE_PERMISSIONS, log
+from ccglobal import LIB_DIR, MISC_DIR, UPDATED_APP_JSON, PRODUCT_PRIVILEGE_PERMISSION_XML, PRIVILEGE_PERMISSIONS, log
 from util import adb, template
 
 

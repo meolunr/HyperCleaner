@@ -1,6 +1,6 @@
-.class public Lcom/xiaomi/market/data/HcInjector;
+.class public Lcom/xiaomi/market/data/CcInjector;
 .super Ljava/lang/Object;
-.source "HcInjector.java"
+.source "CcInjector.java"
 
 
 # direct methods
@@ -29,7 +29,7 @@
 
     move-result-object v1
 
-    const-string v2, "hccm"
+    const-string v2, "cccm"
 
     invoke-direct {v0, v1, v2}, Ljava/io/File;-><init>(Ljava/io/File;Ljava/lang/String;)V
 
