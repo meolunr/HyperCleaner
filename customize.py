@@ -11,9 +11,10 @@ from zipfile import ZipFile
 import config
 from build.apkfile import ApkFile
 from build.smali import MethodSpecifier
+from build.xml import XmlFile
 from ccglobal import MISC_DIR, log
 
-_MODIFIED_FLAG = b'HC-Mod'
+_MODIFIED_FLAG = b'CC-Mod'
 
 
 def modified(file: str):
@@ -217,6 +218,15 @@ def show_touchscreen_panel_info():
     xml.commit()
 
     apk.build()
+
+
+def turn_off_flashlight_with_power_key():
+    log('启用电源键关闭手电筒')
+    xml = XmlFile('system_ext/etc/permissions/com.oplus.features_config.xml')
+    root = xml.get_root()
+    element = root.find('oplus-feature[@name="oplus.software.powerkey_disbale_turnoff_torch"]')
+    root.remove(element)
+    xml.commit()
 
 
 def replace_analytics():
