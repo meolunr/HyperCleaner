@@ -313,6 +313,45 @@ showNetmaskAndGateway(Landroid/content/Context;Landroidx/preference/Preference;L
     apk.build()
 
 
+@modified('my_stock/del-app/Calendar/Calendar.apk')
+def remove_calendar_ads():
+    log('去除日历广告')
+    apk = ApkFile('my_stock/del-app/Calendar/Calendar.apk')
+    apk.decode()
+
+    smali = apk.open_smali('com/android/calendar/module/subscription/almanac/adapter/AlmanacPagesAdapter.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'getItemViewType'
+    specifier.parameters = 'I'
+    old_body = smali.find_method(specifier)
+    new_body = '''\
+.method public getItemViewType(I)I
+    .locals 0
+
+    invoke-super {p0, p1}, Landroidx/recyclerview/widget/RecyclerView$Adapter;->getItemViewType(I)I
+
+    move-result p0
+
+    return p0
+.end method
+'''
+    smali.method_replace(old_body, new_body)
+
+    smali = apk.open_smali('com/coloros/calendar/app/cloudconfig/CloudOperate.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'loadUnSupportAdPhoneConfig'
+    specifier.parameters = ''
+    smali.method_nop(specifier)
+
+    smali = apk.open_smali('com/coloros/calendar/app/cloudconfig/utils/UnSupportAdPhoneHelp.smali')
+    specifier = MethodSpecifier()
+    specifier.name = 'isUnsupportedPhone'
+    specifier.parameters = 'Ljava/lang/String;'
+    smali.method_return_boolean(specifier, True)
+
+    apk.build()
+
+
 def replace_analytics():
     log('替换 BlankAnalytics')
     analytics = 'product/app/AnalyticsCore/AnalyticsCore.apk'
@@ -818,6 +857,7 @@ def run_on_rom():
     disable_sensitive_word_check()
     show_touchscreen_panel_info()
     show_netmask_and_gateway()
+    remove_calendar_ads()
 
 
 def run_on_module():
