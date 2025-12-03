@@ -229,6 +229,90 @@ def turn_off_flashlight_with_power_key():
     xml.commit()
 
 
+@modified('system_ext/priv-app/WirelessSettings/WirelessSettings.apk')
+def show_netmask_and_gateway():
+    log('显示设置中的子网掩码和网关')
+    apk = ApkFile('system_ext/priv-app/WirelessSettings/WirelessSettings.apk')
+    apk.decode()
+
+    smali = apk.open_smali('com/oplus/wirelesssettings/wifi/detail2/WifiAddressController.smali')
+    old_body = smali.find_constructor('Landroid/content/Context;Lcom/android/wifitrackerlib/WifiEntry;')
+    context_field = re.search(r'iput-object p1, p0, Lcom/oplus/wirelesssettings/wifi/detail2/WifiAddressController;->(.+?):Landroid/content/Context;', old_body).group(1)
+
+    specifier = MethodSpecifier()
+    specifier.name = 'displayPreference'
+    specifier.parameters = 'Landroidx/preference/PreferenceScreen;'
+    old_body = smali.find_method(specifier)
+    pattern1 = r'''
+    const-string (?:[v|p]\d+), "{key}"
+'''
+    pattern2 = r'''
+    invoke-virtual {p1, (?:[v|p]\d+)}, Landroidx/preference/PreferenceGroup;->findPreference\(Ljava/lang/CharSequence;\)Landroidx/preference/Preference;
+
+    move-result-object (?:[v|p]\d+)
+
+    iput-object (?:[v|p]\d+), p0, Lcom/oplus/wirelesssettings/wifi/detail2/WifiAddressController;->(.+?):Landroidx/preference/Preference;
+'''
+    ip_preference_field = re.search(f'{pattern1.format(key='current_ip_address')}{pattern2}', old_body).group(1)
+    ipv4_preference_field = re.search(f'{pattern1.format(key='current_ipv4_address')}{pattern2}', old_body).group(1)
+    ipv6_preference_field = re.search(f'{pattern1.format(key='current_ipv6_address')}{pattern2}', old_body).group(1)
+
+    specifier = MethodSpecifier()
+    specifier.parameters = ''
+    specifier.return_type = 'Z'
+    specifier.keywords.add('"WifiAddressController"')
+    specifier.keywords.add('"updateIpInfo:')
+    update_ip_info_method = re.search(r'\.method public final (.+?)\(\)Z', smali.find_method(specifier)).group(1)
+
+    specifier = MethodSpecifier()
+    specifier.parameters = ''
+    specifier.return_type = 'Z'
+    specifier.keywords.add(f'Lcom/oplus/wirelesssettings/wifi/detail2/WifiAddressController;->{update_ip_info_method}()Z')
+
+    old_body = smali.find_method(specifier)
+    pattern = f'''\
+    .locals 1
+((?:.|\\n)*?
+    invoke-virtual {{p0}}, Lcom/oplus/wirelesssettings/wifi/detail2/WifiAddressController;->.+?\\(\\)Z
+)
+    move-result p0
+((?:.|\\n)*?
+    invoke-virtual {{p0}}, Lcom/oplus/wirelesssettings/wifi/detail2/WifiAddressController;->{update_ip_info_method}\\(\\)Z
+)
+    move-result p0
+((?:.|\\n)*?)
+    return p0
+'''
+    repl = f'''\
+    .locals 4
+\\g<1>
+    move-result v0
+\\g<2>
+    move-result v0
+
+    if-eqz v0, :jump
+    
+    iget-object v1, p0, Lcom/oplus/wirelesssettings/wifi/detail2/WifiAddressController;->{context_field}:Landroid/content/Context;
+    
+    iget-object v2, p0, Lcom/oplus/wirelesssettings/wifi/detail2/WifiAddressController;->{ip_preference_field}:Landroidx/preference/Preference;
+    
+    iget-object v3, p0, Lcom/oplus/wirelesssettings/wifi/detail2/WifiAddressController;->{ipv4_preference_field}:Landroidx/preference/Preference;
+
+    iget-object p0, p0, Lcom/oplus/wirelesssettings/wifi/detail2/WifiAddressController;->{ipv6_preference_field}:Landroidx/preference/Preference;
+
+    invoke-static {{v1, v2, v3, p0}}, Lcom/oplus/wirelesssettings/wifi/detail2/CcInjector;->\
+showNetmaskAndGateway(Landroid/content/Context;Landroidx/preference/Preference;Landroidx/preference/Preference;Landroidx/preference/Preference;)V
+
+    :jump\\g<3>
+    return v0
+'''
+    new_body = re.sub(pattern, repl, old_body)
+    smali.method_replace(old_body, new_body)
+    smali.add_affiliated_smali(f'{MISC_DIR}/smali/ShowNetmaskAndGateway.smali', 'CcInjector.smali')
+
+    apk.build()
+
+
 def replace_analytics():
     log('替换 BlankAnalytics')
     analytics = 'product/app/AnalyticsCore/AnalyticsCore.apk'
@@ -733,6 +817,7 @@ def run_on_rom():
     remove_vpn_notification()
     disable_sensitive_word_check()
     show_touchscreen_panel_info()
+    show_netmask_and_gateway()
 
 
 def run_on_module():
